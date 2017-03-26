@@ -46,6 +46,8 @@
 #include "pwm.h"
 #include "rpihw.h"
 
+#include "gamma.h"
+
 #include "ws2811.h"
 
 
@@ -53,10 +55,9 @@
 
 #define OSC_FREQ                                 19200000   // crystal frequency
 
-/* 4 colors (R, G, B + W), 8 bits per byte, 3 symbols per bit + 55uS low for reset signal */
-#define LED_COLOURS                              4
+/* 3 colors, 8 bits per byte, 3 symbols per bit + 55uS low for reset signal */
 #define LED_RESET_uS                             55
-#define LED_BIT_COUNT(leds, freq)                ((leds * LED_COLOURS * 8 * 3) + ((LED_RESET_uS * \
+#define LED_BIT_COUNT(leds, freq)                ((leds * 3 * 8 * 3) + ((LED_RESET_uS * \
                                                   (freq * 3)) / 1000000))
 
 // Pad out to the nearest uint32 + 32-bits for idle low/high times the number of channels
@@ -65,6 +66,8 @@
 
 #define SYMBOL_HIGH                              0x6  // 1 1 0
 #define SYMBOL_LOW                               0x4  // 1 0 0
+
+#define ARRAY_SIZE(stuff)                        (sizeof(stuff) / sizeof(stuff[0]))
 
 
 // We use the mailbox interface to request memory from the VideoCore.
@@ -333,7 +336,7 @@ static void dma_start(ws2811_t *ws2811)
     dma->conblk_ad = dma_cb_addr;
     dma->debug = 7; // clear debug error flags
     dma->cs = RPI_DMA_CS_WAIT_OUTSTANDING_WRITES |
-              RPI_DMA_CS_PANIC_PRIORITY(15) |
+              RPI_DMA_CS_PANIC_PRIORITY(15) | 
               RPI_DMA_CS_PRIORITY(15) |
               RPI_DMA_CS_ACTIVE;
 }
@@ -453,7 +456,7 @@ void ws2811_cleanup(ws2811_t *ws2811)
  *
  * @returns  0 on success, -1 otherwise.
  */
-ws2811_return_t ws2811_init(ws2811_t *ws2811)
+int ws2811_init(ws2811_t *ws2811)
 {
     ws2811_device_t *device;
     const rpi_hw_t *rpi_hw;
@@ -462,14 +465,14 @@ ws2811_return_t ws2811_init(ws2811_t *ws2811)
     ws2811->rpi_hw = rpi_hw_detect();
     if (!ws2811->rpi_hw)
     {
-        return WS2811_ERROR_HW_NOT_SUPPORTED;
+        return -1;
     }
     rpi_hw = ws2811->rpi_hw;
 
     ws2811->device = malloc(sizeof(*ws2811->device));
     if (!ws2811->device)
     {
-        return WS2811_ERROR_OUT_OF_MEMORY;
+        return -1;
     }
     device = ws2811->device;
 
@@ -482,32 +485,23 @@ ws2811_return_t ws2811_init(ws2811_t *ws2811)
     device->mbox.handle = mbox_open();
     if (device->mbox.handle == -1)
     {
-        return WS2811_ERROR_MAILBOX_DEVICE;
+        return -1;
     }
 
     device->mbox.mem_ref = mem_alloc(device->mbox.handle, device->mbox.size, PAGE_SIZE,
                                      rpi_hw->videocore_base == 0x40000000 ? 0xC : 0x4);
     if (device->mbox.mem_ref == 0)
     {
-        return WS2811_ERROR_OUT_OF_MEMORY;
+       return -1;
     }
 
     device->mbox.bus_addr = mem_lock(device->mbox.handle, device->mbox.mem_ref);
     if (device->mbox.bus_addr == (uint32_t) ~0UL)
     {
-        mem_free(device->mbox.handle, device->mbox.size);
-        return WS2811_ERROR_MEM_LOCK;
+       mem_free(device->mbox.handle, device->mbox.size);
+       return -1;
     }
-
     device->mbox.virt_addr = mapmem(BUS_TO_PHYS(device->mbox.bus_addr), device->mbox.size);
-    if (!device->mbox.virt_addr)
-    {
-        mem_unlock(device->mbox.handle, device->mbox.mem_ref);
-        mem_free(device->mbox.handle, device->mbox.size);
-
-        ws2811_cleanup(ws2811);
-        return WS2811_ERROR_MMAP;
-    }
 
     // Initialize all pointers to NULL.  Any non-NULL pointers will be freed on cleanup.
     device->pwm_raw = NULL;
@@ -525,8 +519,7 @@ ws2811_return_t ws2811_init(ws2811_t *ws2811)
         channel->leds = malloc(sizeof(ws2811_led_t) * channel->count);
         if (!channel->leds)
         {
-            ws2811_cleanup(ws2811);
-            return WS2811_ERROR_OUT_OF_MEMORY;
+            goto err;
         }
 
         memset(channel->leds, 0, sizeof(ws2811_led_t) * channel->count);
@@ -535,11 +528,6 @@ ws2811_return_t ws2811_init(ws2811_t *ws2811)
         {
           channel->strip_type=WS2811_STRIP_RGB;
         }
-
-        channel->wshift = (channel->strip_type >> 24) & 0xff;
-        channel->rshift = (channel->strip_type >> 16) & 0xff;
-        channel->gshift = (channel->strip_type >> 8)  & 0xff;
-        channel->bshift = (channel->strip_type >> 0)  & 0xff;
     }
 
     device->dma_cb = (dma_cb_t *)device->mbox.virt_addr;
@@ -555,27 +543,29 @@ ws2811_return_t ws2811_init(ws2811_t *ws2811)
     // Map the physical registers into userspace
     if (map_registers(ws2811))
     {
-        ws2811_cleanup(ws2811);
-        return WS2811_ERROR_MAP_REGISTERS;
+        goto err;
     }
 
     // Initialize the GPIO pins
     if (gpio_init(ws2811))
     {
         unmap_registers(ws2811);
-        ws2811_cleanup(ws2811);
-        return WS2811_ERROR_GPIO_INIT;
+        goto err;
     }
 
     // Setup the PWM, clocks, and DMA
     if (setup_pwm(ws2811))
     {
         unmap_registers(ws2811);
-        ws2811_cleanup(ws2811);
-        return WS2811_ERROR_PWM_SETUP;
+        goto err;
     }
 
-    return WS2811_SUCCESS;
+    return 0;
+
+err:
+    ws2811_cleanup(ws2811);
+
+    return -1;
 }
 
 /**
@@ -602,7 +592,7 @@ void ws2811_fini(ws2811_t *ws2811)
  *
  * @returns  0 on success, -1 on DMA competion error
  */
-ws2811_return_t ws2811_wait(ws2811_t *ws2811)
+int ws2811_wait(ws2811_t *ws2811)
 {
     volatile dma_t *dma = ws2811->device->dma;
 
@@ -615,7 +605,7 @@ ws2811_return_t ws2811_wait(ws2811_t *ws2811)
     if (dma->cs & RPI_DMA_CS_ERROR)
     {
         fprintf(stderr, "DMA Error: %08x\n", dma->debug);
-        return WS2811_ERROR_DMA;
+        return -1;
     }
 
     return 0;
@@ -629,39 +619,32 @@ ws2811_return_t ws2811_wait(ws2811_t *ws2811)
  *
  * @returns  None
  */
-ws2811_return_t ws2811_render(ws2811_t *ws2811)
+int ws2811_render(ws2811_t *ws2811)
 {
     volatile uint8_t *pwm_raw = ws2811->device->pwm_raw;
     int bitpos = 31;
     int i, k, l, chan;
     unsigned j;
-    ws2811_return_t ret;
 
     for (chan = 0; chan < RPI_PWM_CHANNELS; chan++)         // Channel
     {
         ws2811_channel_t *channel = &ws2811->channel[chan];
         int wordpos = chan;
-        const int scale = (channel->brightness & 0xff) + 1;
+        int scale   = (channel->brightness & 0xff) + 1;
+        int rshift  = (channel->strip_type >> 16) & 0xff;
+        int gshift  = (channel->strip_type >> 8)  & 0xff;
+        int bshift  = (channel->strip_type >> 0)  & 0xff;
 
         for (i = 0; i < channel->count; i++)                // Led
         {
             uint8_t color[] =
             {
-                (((channel->leds[i] >> channel->rshift) & 0xff) * scale) >> 8, // red
-                (((channel->leds[i] >> channel->gshift) & 0xff) * scale) >> 8, // green
-                (((channel->leds[i] >> channel->bshift) & 0xff) * scale) >> 8, // blue
-                (((channel->leds[i] >> channel->wshift) & 0xff) * scale) >> 8, // white
+                ws281x_gamma[(((channel->leds[i] >> rshift) & 0xff) * scale) >> 8], // red
+                ws281x_gamma[(((channel->leds[i] >> gshift) & 0xff) * scale) >> 8], // green
+                ws281x_gamma[(((channel->leds[i] >> bshift) & 0xff) * scale) >> 8], // blue
             };
-            uint8_t array_size = 3; // Assume 3 color LEDs, RGB
 
-            // If our shift mask includes the highest nibble, then we have 4
-            // LEDs, RBGW.
-            if (channel->strip_type & SK6812_SHIFT_WMASK)
-            {
-                array_size = 4;
-            }
-
-            for (j = 0; j < array_size; j++)               // Color
+            for (j = 0; j < ARRAY_SIZE(color); j++)        // Color
             {
                 for (k = 7; k >= 0; k--)                   // Bit
                 {
@@ -697,9 +680,9 @@ ws2811_return_t ws2811_render(ws2811_t *ws2811)
     }
 
     // Wait for any previous DMA operation to complete.
-    if ((ret = ws2811_wait(ws2811)) != WS2811_SUCCESS)
+    if (ws2811_wait(ws2811))
     {
-        return ret;
+        return -1;
     }
 
     dma_start(ws2811);
@@ -707,15 +690,3 @@ ws2811_return_t ws2811_render(ws2811_t *ws2811)
     return 0;
 }
 
-const char * ws2811_get_return_t_str(const ws2811_return_t state)
-{
-    const int index = -state;
-    static const char * const ret_state_str[] = { WS2811_RETURN_STATES(WS2811_RETURN_STATES_STRING) };
-
-    if (index < sizeof(ret_state_str) / sizeof(ret_state_str[0]))
-    {
-        return ret_state_str[index];
-    }
-
-    return "";
-}

@@ -46,6 +46,7 @@ class _LED_Data(object):
 				index += 1
 		# Else assume the passed in value is a number to the position.
 		else:
+			print str(value)
 			return ws.ws2811_led_set(self.channel, pos, value)
 
 

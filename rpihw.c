@@ -46,8 +46,6 @@
 #define VIDEOCORE_BASE_RPI                       0x40000000
 #define VIDEOCORE_BASE_RPI2                      0xc0000000
 
-#define RPI_MANUFACTURER_MASK                    (0xf << 16)
-#define RPI_WARRANTY_MASK                        (0x3 << 24)
 
 static const rpi_hw_t rpi_hw_info[] = {
     //
@@ -160,13 +158,6 @@ static const rpi_hw_t rpi_hw_info[] = {
         .videocore_base = VIDEOCORE_BASE_RPI,
         .desc = "Model B+",
     },
-    {
-        .hwver  = 0x900032,
-        .type = RPI_HWVER_TYPE_PI1,
-        .periph_base = PERIPH_BASE_RPI,
-        .videocore_base = VIDEOCORE_BASE_RPI,
-        .desc = "Model B+",
-    },
 
     //
     // Compute Module
@@ -194,14 +185,14 @@ static const rpi_hw_t rpi_hw_info[] = {
         .type = RPI_HWVER_TYPE_PI1,
         .periph_base = PERIPH_BASE_RPI,
         .videocore_base = VIDEOCORE_BASE_RPI,
-        .desc = "Pi Zero",
+        .desc = "Pi Zero v1.2",
     },
     {
         .hwver  = 0x900093,
         .type = RPI_HWVER_TYPE_PI1,
         .periph_base = PERIPH_BASE_RPI,
         .videocore_base = VIDEOCORE_BASE_RPI,
-        .desc = "Pi Zero",
+        .desc = "Pi Zero v1.3",
     },
     {
         .hwver  = 0x920093,
@@ -209,6 +200,13 @@ static const rpi_hw_t rpi_hw_info[] = {
         .periph_base = PERIPH_BASE_RPI,
         .videocore_base = VIDEOCORE_BASE_RPI,
         .desc = "Pi Zero v1.3",
+    },
+    {
+        .hwver  = 0x9000c1,
+        .type = RPI_HWVER_TYPE_PI1,
+        .periph_base = PERIPH_BASE_RPI,
+        .videocore_base = VIDEOCORE_BASE_RPI,
+        .desc = "Pi Zero W v1.1",
     },
 
     //
@@ -233,14 +231,14 @@ static const rpi_hw_t rpi_hw_info[] = {
     // Pi 2 Model B
     //
     {
-        .hwver  = 0xa01041,
+        .hwver  = 0xa01040, // Les Pounder is a special little snowflake edition ;)
         .type = RPI_HWVER_TYPE_PI2,
         .periph_base = PERIPH_BASE_RPI2,
         .videocore_base = VIDEOCORE_BASE_RPI2,
         .desc = "Pi 2",
     },
     {
-        .hwver  = 0xa01040,
+        .hwver  = 0xa01041,
         .type = RPI_HWVER_TYPE_PI2,
         .periph_base = PERIPH_BASE_RPI2,
         .videocore_base = VIDEOCORE_BASE_RPI2,
@@ -275,16 +273,6 @@ static const rpi_hw_t rpi_hw_info[] = {
     },
     {
         .hwver  = 0xa22082,
-        .type = RPI_HWVER_TYPE_PI2,
-        .periph_base = PERIPH_BASE_RPI2,
-        .videocore_base = VIDEOCORE_BASE_RPI2,
-        .desc = "Pi 3",
-    },
-    //
-    // Pi Compute Module 3
-    //
-    {
-        .hwver  = 0xa020a0,
         .type = RPI_HWVER_TYPE_PI2,
         .periph_base = PERIPH_BASE_RPI2,
         .videocore_base = VIDEOCORE_BASE_RPI2,
@@ -328,13 +316,7 @@ const rpi_hw_t *rpi_hw_detect(void)
 
             for (i = 0; i < (sizeof(rpi_hw_info) / sizeof(rpi_hw_info[0])); i++)
             {
-                uint32_t hwver = rpi_hw_info[i].hwver;
-
-                // Take out warranty and manufacturer bits
-                hwver &= ~(RPI_WARRANTY_MASK | RPI_MANUFACTURER_MASK);
-                rev &= ~(RPI_WARRANTY_MASK | RPI_MANUFACTURER_MASK);
-                
-                if (rev == hwver)
+                if (rev == rpi_hw_info[i].hwver)
                 {
                     result = &rpi_hw_info[i];
 
@@ -349,4 +331,3 @@ done:
 
     return result;
 }
-
