@@ -36,6 +36,10 @@ Race modes
     -Set maximum speed
     -Disable further powerup reading
 
+(!) Remote disabling
+- Stop a trike via command from wifi base
+- Stop a trike when it leaves the track area (wifi based? GPS tracking?)
+
 (!!) Tag list editing
 - Set up easy interface for adding new cards (start reading mode->compare tag with lists->input type->add card to correct list)
 
