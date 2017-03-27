@@ -18,6 +18,13 @@ TO DO LIST:
 - Mushroom (fixed pad): Speeds up the trike to 100% for 3 seconds
 - Gold mushroom (fixed pad): Speeds up the trike to 80% for 10 seconds
 
+Race modes
+(!!) - 50cc, 100cc, 150cc (top speed limit on the trikes: 40%, 50%, 60%, all powerups enabled)
+(!) - Time trial mode (top speed limit 80%, limited to three uses of mushroom powerup on button press, rest of powerups are disabled)
+(!) - Star mode (no speed limit, mushrooms disabled, rest of powerups are enabled)
+(!) - Battle mode (no track checkpoints, after being hit 3 times trike powers down and player is out, all powerups enabled)
+(!!) - Admin mode (no speed limit, no powerups)
+
 (!) Multi-trike (communication with track/base/trikes required) Powerup list (placeholder numbers)
 - Lightning bolt (fixed pad): Slows down every other trike to 20% for 6 seconds
 - Blue shell (fixed pad): Slows down the trike on first place to 5% for 6 seconds
@@ -38,3 +45,7 @@ TO DO LIST:
 - Track music/lightning/other effects
 - Random powerups
 - Powerup cooldown and reactivation
+
+(-) User colour schemes
+- Load a custom colour scheme when a user scans his own personal card
+- Make some web UI for high-tier backers to edit the colour scheme
