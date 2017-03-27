@@ -8,6 +8,10 @@ Running:
 - sudo python RFIDtest.py
 
 TO DO LIST:
+(!!!!) - MUST BE READY, PRONTO!
+(!!!) - Necessary for a fully functional proof of concept
+(!!) - Necessary for a full working game
+(!) - Extras/quality of life stuff
 
 (!!!!) Pot interfacing
 
@@ -36,7 +40,7 @@ Race modes
     -Set maximum speed
     -Disable further powerup reading
 
-(!) Remote disabling
+(!!) Remote disabling
 - Stop a trike via command from wifi base
 - Stop a trike when it leaves the track area (wifi based? GPS tracking?)
 
