@@ -22,7 +22,7 @@ type1Cards      = [] #R
 type2Cards      = [] #G
 type3Cards      = [] #B
 #LEDS
-LED_COUNT      = 24      # Number of LED pixels.
+LED_COUNT      = 29      # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
 LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
 LED_DMA        = 5       # DMA channel to use for generating signal (try 5)
@@ -113,10 +113,10 @@ def rainbow(strip, wait_ms=20, iterations=1):
 		time.sleep(wait_ms/1000.0)
 
 #rainbow uniformly scattered across all pixels
-def rainbowCycle(strip, wait_ms=20, iterations=5):
-	for j in range(256*iterations):
+def rainbowCycle(strip, wait_ms=20, iterations=5, speed=1, size=256):
+	for j in range(256*iterations):		
 		for i in range(strip.numPixels()):
-			strip.setPixelColor(i, wheel((int(i * 256 / strip.numPixels()) + j) & 255))
+			strip.setPixelColor(i, wheel((int(i * size / strip.numPixels()) + (j*speed)) & 255))
 		if LED_ON == False or LED_MODE != 4:
 			break
 		strip.show()
@@ -150,7 +150,7 @@ def startLEDStrip(strip):
 		if LED_MODE == 3:
 	                rainbow(strip)
 		if LED_MODE == 4:
-	                rainbowCycle(strip)
+	                rainbowCycle(strip,20,5,5,1025)
 		if LED_MODE == 5:
 	                theaterChaseRainbow(strip)
 		if LED_MODE == 6:
@@ -239,7 +239,7 @@ def parseReaderMsg(buf):
 					time.sleep(2)
 				elif tmpCardID in type3Cards: #TYPE 3 CARDS LOGIC - TODO
 					print "Card type 3"
-                                        LED_COLOR_WIPE = Color(150,150,0)
+					LED_COLOR_WIPE = Color(150,150,0)
                                         LED_MODE = 1
 					time.sleep(2)
 				else:
@@ -281,7 +281,7 @@ def showFunctions():
 	return option
 
 def readValidCardList():
-	f = open("cardList.txt")
+	f = open("/home/pi/rpi_ws281x/python/rainbow/cardList.txt")
 	next = f.readline()
 	while next != "":
 		_card = next.split(':')
@@ -313,6 +313,12 @@ if __name__ == '__main__':
 	LED_COLOR_WIPE = Color(150,0,0)
 	t = threading.Thread(name='LEDS', target=startLEDStrip, args=(strip,))
 	t.start()
+
+	if "-autorun" in sys.argv:
+		#while True:
+		initReaderUSB()
+		resetReader()
+		startReading()
 
 while True:
 	clearScreen()
