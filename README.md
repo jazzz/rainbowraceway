@@ -8,6 +8,7 @@ Running:
 - sudo python RFIDtest.py
 
 TO DO LIST:
+
 (!!!!) Pot interfacing
 
 (!!!) Single-trike (no communication with track/base/trikes required) Powerup list (placeholder numbers and names)
