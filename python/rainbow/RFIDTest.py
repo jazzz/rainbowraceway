@@ -37,6 +37,8 @@ LED_INVERT     = False   # True to invert the signal (when using NPN transistor 
 LED_MODE       = 0
 LED_ON         = False
 LED_COLOR_WIPE = Color(0,0,0)
+#GAME
+_curPowerup	= -1 #Current powerup (-1 for none)
 
 print ("setting up functions...")
 #####################
@@ -340,7 +342,51 @@ def readValidCardList():
 ##GAME FUNCTIONS##
 ##################
 def executeCardEffect(cardType):
-	print("pum")
+	global _curPowerup
+#GreenShellCards         = 0
+#RedShellCards           = 1
+#BananaCards             = 2
+#MushroomCards           = 3
+#GoldMushroomCards       = 4
+#AdminCards              = 5
+
+	if _curPowerup == cardType:
+		return
+
+	#MAIN POWERUP LOGIC GOES HERE
+	if cardType == 0:
+		print("GREEN SHELL ON")
+		_curPowerup = cardType
+		tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(6,))
+		tmr.start()
+	elif cardType == 1:
+		print("RED SHELL ON")
+		_curPowerup = cardType
+		tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(6,))
+		tmr.start()
+	elif cardType == 2:
+		print("BANANA ON")
+		_curPowerup = cardType
+		tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(3,))
+		tmr.start()
+	elif cardType == 3:
+		print("MUSHROOM ON")
+		_curPowerup = cardType
+		tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(3,))
+		tmr.start()
+	elif cardType == 4:
+		print("GOLD MUSHROOM ON")
+		_curPowerup = cardType
+		tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(10,))
+		tmr.start()
+	elif cardType == 5:
+		print("ADMIN MODE ON")
+
+def powerupTimer(sec):
+	global _curPowerup
+	time.sleep(sec)
+	_curPowerup = -1
+	print("POWERUP OVER")
 
 
 ######
