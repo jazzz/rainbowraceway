@@ -26,7 +26,8 @@ RedShellCards		= [] #1
 BananaCards		= [] #2
 MushroomCards		= [] #3
 GoldMushroomCards	= [] #4
-AdminCards		= [] #5
+StarCards		= [] #5
+AdminCards		= [] #6
 #LEDS
 LED_COUNT      = 29      # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
@@ -209,7 +210,7 @@ def startReading(): #Start reading in inventory mode
 def parseReaderMsg(buf):
 	#total number of cards scanned of each type on the last round
 	#if we read more than one type of card at the same time, we'll ignore everything
-	cardTypesFound = [0,0,0,0,0,0]
+	cardTypesFound = [0,0,0,0,0,0,0]
 	lastCardType		= -1
 	global _buffer
 	global LED_MODE
@@ -249,30 +250,34 @@ def parseReaderMsg(buf):
 					print "Dir = " + str(tmpDir) #Address of the reader
 					print "Data = " + binascii.hexlify(tmpData) #message data
 				print "CardID = " + tmpCardID
-				if tmpCardID in GreenShellCards: #TYPE 1 CARD LOGIC - TODO
+				if tmpCardID in GreenShellCards: #TYPE 0 CARD
 					print "Card type 0: GREEN SHELL"
 					cardTypesFound[0] += 1
 					lastCardType = 0
-				elif tmpCardID in RedShellCards: #TYPE 2 CARD LOGIC - TODO
+				elif tmpCardID in RedShellCards: #TYPE 1 CARD
 					print "Card type 1: RED SHELL"
 					cardTypesFound[1] += 1
 					lastCardType = 1
-				elif tmpCardID in BananaCards: #TYPE 3 CARDS LOGIC - TODO
+				elif tmpCardID in BananaCards: #TYPE 2 CARD
 					print "Card type 2: BANANA"
 					cardTypesFound[2] += 1
 					lastCardType = 2
-				elif tmpCardID in MushroomCards: #TYPE 3 CARDS LOGIC - TODO
+				elif tmpCardID in MushroomCards: #TYPE 3 CARD
 					print "Card type 3: MUSHROOM"
 					cardTypesFound[3] += 1
 					lastCardType = 3
-				elif tmpCardID in GoldMushroomCards: #TYPE 3 CARDS LOGIC - TODO
+				elif tmpCardID in GoldMushroomCards: #TYPE 4 CARD
 					print "Card type 4: GOLD MUSHROOM"
 					cardTypesFound[4] += 1
 					lastCardType = 4
-				elif tmpCardID in AdminCards: #TYPE 3 CARDS LOGIC - TODO
-					print "Card type 5: ADMIN"
+				elif tmpCardID in StarCards: #TYPE 4 CARD
+					print "Card type 5: STAR"
 					cardTypesFound[5] += 1
 					lastCardType = 5
+				elif tmpCardID in AdminCards: #TYPE 5 CARD
+					print "Card type 6: ADMIN"
+					cardTypesFound[6] += 1
+					lastCardType = 6
 				else:
 					print "Unknown card type. Make sure to register new cards before using them"
 			_buffer = _buffer[tmpLen:]
@@ -326,7 +331,9 @@ def readValidCardList():
 			MushroomCards.append(_card[0])
                 if _card[1] == '4\n':
                         GoldMushroomCards.append(_card[0])
-                if _card[1] == '5\n':
+		if _card[1] == '5\n':
+			StarCards.append(_card[0])
+                if _card[1] == '6\n':
                         AdminCards.append(_card[0])
 
 
@@ -336,6 +343,7 @@ def readValidCardList():
 	print 'Banana cards: ' +  str(BananaCards)
         print 'Mushroom cards: ' +  str(MushroomCards)
         print 'Gold mushroom cards: ' +  str(GoldMushroomCards)
+	print 'Star cards: ' + str(StarCards)
         print 'Admin cards: ' +  str(AdminCards)
 
 ##################
@@ -348,7 +356,8 @@ def executeCardEffect(cardType):
 #BananaCards             = 2
 #MushroomCards           = 3
 #GoldMushroomCards       = 4
-#AdminCards              = 5
+#StarCards		 = 5
+#AdminCards              = 6
 
 	if _curPowerup == cardType:
 		return
@@ -380,6 +389,11 @@ def executeCardEffect(cardType):
 		tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(10,))
 		tmr.start()
 	elif cardType == 5:
+		print("STAR ON")
+		_curPowerup = cardType
+		tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(10,))
+		tmr.start()
+	elif cardType == 6:
 		print("ADMIN MODE ON")
 
 def powerupTimer(sec):
