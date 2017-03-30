@@ -38,8 +38,19 @@ LED_INVERT     = False   # True to invert the signal (when using NPN transistor 
 LED_MODE       = 0
 LED_ON         = False
 LED_COLOR_WIPE = Color(0,0,0)
+LED_COLOR_WIPE2 = Color(255,255,255)
 #GAME
-_curPowerup	= -1 #Current powerup (-1 for none)
+_curPowerup		= -1 #Current powerup (-1 for none)
+_maxModeThrottle	= 1 #% of total power (0 - 1 range) determined by the race mode
+_maxThrottle		= 1 #% of total power (0 - 1 range) determined by powerup
+
+################
+#POWERUP CONFIG#
+################
+GREEN_SHELL_DURATION	= 6
+GREEN_SHELL_TIME_DOWN	= 0.2
+GREEN_SHELL_TIME_UP	= 0.5
+GREEN_SHELL_EFFECT	= 0.2
 
 print ("setting up functions...")
 #####################
@@ -60,23 +71,36 @@ def theaterChase(strip, color, wait_ms=50, iterations=10):
 				strip.setPixelColor(i+q, color)
 			strip.show()
 			if LED_ON == False or LED_MODE != 2:
-				break
+				return
 			time.sleep(wait_ms/1000.0)
 			for i in range(0, strip.numPixels(), 3):
 				strip.setPixelColor(i+q, 0)
+
+#1-pixel on, 1-pixel off, scrolling across all pixels, single color
+def theaterChase2(strip, color, color2, wait_ms=50, iterations=10):
+	for j in range(iterations):
+		for q in range(3):
+			for i in range(0, strip.numPixels(), 3):
+				strip.setPixelColor(i+q, color)
+			strip.show()
+			if LED_ON == False or LED_MODE != 7:
+				return
+			time.sleep(wait_ms/1000.0)
+			for i in range(0, strip.numPixels(), 3):
+				strip.setPixelColor(i+q, color2)
 
 #fades from black to single color in timelen seconds
 def fadeInOut(strip, color, timelen, iterations):
 	green =  float(color & 255)
 	blue = float((color >> 8) & 255)
 	red =   float((color >> 16) & 255)
-	newRed = 0
-	newBlue = 0
-	newGreen = 0
+	#newRed = 0
+	#newBlue = 0
+	#newGreen = 0
 	for j in range(iterations):
-		for q in range((timelen*20)+1):
+		for q in range((int(timelen*20))+1):
 			if (LED_ON == False) or (LED_MODE != 6):
-				break
+				return
 			newRed = int(round(q*(red/(timelen*20)))) & 255
 			newBlue = int(round(q*(blue/(timelen*20)))) & 255
 			newGreen = int(round(q*(green/(timelen*20)))) & 255
@@ -86,9 +110,9 @@ def fadeInOut(strip, color, timelen, iterations):
                 		strip.setPixelColor(i, newColor)
 		                strip.show()
 	                time.sleep(0.05)
-                for q in reversed(range((timelen*20)+1)):
+                for q in reversed(range(int(timelen*20)+1)):
                         if (LED_ON == False) or (LED_MODE != 6):
-                                break
+                                return
                         newRed = int(round(q*(red/(timelen*20)))) & 255
                         newBlue = int(round(q*(blue/(timelen*20)))) & 255
                         newGreen = int(round(q*(green/(timelen*20)))) & 255
@@ -117,7 +141,7 @@ def rainbow(strip, wait_ms=20, iterations=1):
 		for i in range(strip.numPixels()):
 			strip.setPixelColor(i, wheel((i+j) & 255))
 		if LED_ON == False or LED_MODE != 3:
-			break
+			return
 		strip.show()
 		time.sleep(wait_ms/1000.0)
 
@@ -127,7 +151,7 @@ def rainbowCycle(strip, wait_ms=20, iterations=5, speed=1, size=256):
 		for i in range(strip.numPixels()):
 			strip.setPixelColor(i, wheel((int(i * size / strip.numPixels()) + (j*speed)) & 255))
 		if LED_ON == False or LED_MODE != 4:
-			break
+			return
 		strip.show()
 		time.sleep(wait_ms/1000.0)
 
@@ -138,7 +162,7 @@ def theaterChaseRainbow(strip, wait_ms=50):
 			for i in range(0, strip.numPixels(), 3):
 				strip.setPixelColor(i+q, wheel((i+j) % 255))
 			if LED_ON == False or LED_MODE != 5:
-				break
+				return
 			strip.show()
 			time.sleep(wait_ms/1000.0)
 			for i in range(0, strip.numPixels(), 3):
@@ -148,7 +172,6 @@ def startLEDStrip(strip):
 	global LED_ON 
 	global LED_MODE
 	LED_ON = True
-
 	while LED_ON == True:
 		if LED_MODE == 0:
 			colorWipe(strip, Color(0,0,0))
@@ -163,7 +186,9 @@ def startLEDStrip(strip):
 		if LED_MODE == 5:
 	                theaterChaseRainbow(strip)
 		if LED_MODE == 6:
-			fadeInOut(strip,LED_COLOR_WIPE,1,1)
+			fadeInOut(strip,LED_COLOR_WIPE,2,1)
+		if LED_MODE == 7:
+			theaterChase2(strip, LED_COLOR_WIPE, LED_COLOR_WIPE2)
 
 def stopLEDStrip():
 	global LED_ON
@@ -207,7 +232,7 @@ def startReading(): #Start reading in inventory mode
 			line = raw_input()
 			break
   
-def parseReaderMsg(buf):
+def parseReaderMsg(buf): #Reads the card information from the reader
 	#total number of cards scanned of each type on the last round
 	#if we read more than one type of card at the same time, we'll ignore everything
 	cardTypesFound = [0,0,0,0,0,0,0]
@@ -238,10 +263,10 @@ def parseReaderMsg(buf):
 					#If the number of cards scanned of the last type doesn't match the total number of cards, we have too many types of cards
 					if cardTypesFound[lastCardType] != totalCards:
 						print("Too many types in one read")
-						executeCardEffect(lastCardType)
+						executeCardEffectON(lastCardType)
 					else:
 						print("Type check OK. Card type = ") + str(lastCardType)
-						executeCardEffect(lastCardType)
+						executeCardEffectON(lastCardType)
 			else:
 				tmpCardID = binascii.hexlify(tmpData[11:len(tmpData)-1]) #Split the reader response and check card type
 				if displayDebug:
@@ -281,15 +306,14 @@ def parseReaderMsg(buf):
 				else:
 					print "Unknown card type. Make sure to register new cards before using them"
 			_buffer = _buffer[tmpLen:]
-			LED_MODE = 4
 			i = -1
 		i += 1
 
 
-def clearScreen():
+def clearScreen(): #Prints a bunch of newlines to clear the terminal screen
 	print ("\n" * 100)
 
-def showFunctions():
+def showFunctions(): #Shows the terminal interface
 	global LED_COLOR_WIPE
 	global LED_MODE
 
@@ -301,6 +325,7 @@ def showFunctions():
 	print "0: Exit"
 	print ("\n" * 2)
 
+	#Change LED color to show reader connection status
 	LED_MODE = 6
 	if mode == 0:
 		print "Reader status: Disconnected"
@@ -316,7 +341,7 @@ def showFunctions():
 	option = input("Choose an option: ")
 	return option
 
-def readValidCardList():
+def readValidCardList(): #Parses the list of registered cards from the file cardList.txt
 	f = open("/home/pi/rpi_ws281x/python/rainbow/cardList.txt")
 	next = f.readline()
 	while next != "":
@@ -346,28 +371,55 @@ def readValidCardList():
 	print 'Star cards: ' + str(StarCards)
         print 'Admin cards: ' +  str(AdminCards)
 
+###############
+#SPI FUNCTIONS#
+###############
+def SPI_init(): #Initializes the SPI pins
+	spi = spidev.SpiDev()
+	spi.open(0, 0)
+	spi.max_speed_hz = 10000
+
+# Split an integer input into a two byte array to send via SPI
+def SPI_write_pot(input):
+	msb = input >> 8
+	lsb = input & 0xFF
+	resp = spi.xfer([msb,lsb])
+	#print str([msb,lsb]) + ' - ' + str(resp)
+
 ##################
 ##GAME FUNCTIONS##
 ##################
-def executeCardEffect(cardType):
+def executeCardEffectON(cardType):
+	global LED_MODE
+	global LED_COLOR_WIPE
+	global LED_COLOR_WIPE2
 	global _curPowerup
-#GreenShellCards         = 0
-#RedShellCards           = 1
-#BananaCards             = 2
-#MushroomCards           = 3
-#GoldMushroomCards       = 4
-#StarCards		 = 5
-#AdminCards              = 6
+
+	#-1: No powerup
+	#0: GREEN SHELL
+	global GREEN_SHELL_DURATION
+	global GREEN_SHELL_TIME_DOWN
+	global GREEN_SHELL_TIME_UP
+	global GREEN_SHELL_EFFECT
+	#1: RED SHELL
+
 
 	if _curPowerup == cardType:
 		return
 
 	#MAIN POWERUP LOGIC GOES HERE
 	if cardType == 0:
-		print("GREEN SHELL ON")
-		_curPowerup = cardType
-		tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(6,))
-		tmr.start()
+		if _curPowerup in [-1,3,4]:
+			print("GREEN SHELL ON")
+			#Won't count while affected by other effects, except mushrooms (overwrites mushroom effects)
+			_curPowerup = cardType
+			#Lowers the throttle power - TO DO
+			LED_COLOR_WIPE = Color(0,255,0)
+			LED_COLOR_WIPE2 = Color(100,100,100)
+			LED_MODE = 7 #Set the light effects
+			#Stop other timer threads if there are any in effect - TO DO
+			tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(GREEN_SHELL_DURATION,)) #Set timer thread
+			tmr.start() #Start timer thread
 	elif cardType == 1:
 		print("RED SHELL ON")
 		_curPowerup = cardType
@@ -396,11 +448,41 @@ def executeCardEffect(cardType):
 	elif cardType == 6:
 		print("ADMIN MODE ON")
 
+def executeCardEffectOFF(cardType):
+	global LED_MODE
+#GreenShellCards         = 0
+#RedShellCards           = 1
+#BananaCards             = 2
+#MushroomCards           = 3
+#GoldMushroomCards       = 4
+#StarCards               = 5
+#AdminCards              = 6
+
+        #MAIN POWERUP DEACTIVATION LOGIC GOES HERE
+	if cardType == 0:
+		print("GREEN SHELL OFF")
+		LED_MODE = 4
+	elif cardType == 1:
+		print("RED SHELL OFF")
+		LED_MODE = 4
+	elif cardType == 2:
+		print("BANANA OFF")
+		LED_MODE = 4
+	elif cardType == 3:
+		print("MUSHROOM OFF")
+		LED_MODE = 4
+	elif cardType == 4:
+		print("GOLD MUSHROOM OFF")
+		LED_MODE = 4
+	elif cardType == 5:
+		print("STAR OFF")
+		LED_MODE = 4
+
 def powerupTimer(sec):
 	global _curPowerup
 	time.sleep(sec)
+	executeCardEffectOFF(_curPowerup)
 	_curPowerup = -1
-	print("POWERUP OVER")
 
 
 ######
