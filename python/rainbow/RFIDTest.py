@@ -375,7 +375,6 @@ def readValidCardList(): #Parses the list of registered cards from the file card
 #SPI FUNCTIONS#
 ###############
 def SPI_init(): #Initializes the SPI pins
-	spi = spidev.SpiDev()
 	spi.open(0, 0)
 	spi.max_speed_hz = 10000
 
@@ -386,6 +385,27 @@ def SPI_write_pot(input):
 	resp = spi.xfer([msb,lsb])
 	#print str([msb,lsb]) + ' - ' + str(resp)
 
+#Interpolates the pot resistor value between two values in specified amount of time
+def potFromTo(initvalue, endvalue, duration):
+	if initvalue > endvalue:
+#		interval = duration * 20
+#		increment = (initvalue - endvalue)/interval
+#		print ("pot going down in " + str(interval) + " steps, " + str(increment) + " increase")
+#		print str(int(initvalue*255))
+#		for i in (range(int(initvalue*255),int(endvalue*255),int(increment*255*-1))):
+#			print "A=" + str(abs(255-i))
+		for i in range (0, 255, 10):
+			print("DOWN")
+			SPI_write_pot(i)
+			time.sleep(0.2)
+	else:
+		for i in range (255,0, -10):
+			print("UP")
+			SPI_write_pot(i)
+			time.sleep(0.2)
+#		print ("POT GOING UP")
+
+
 ##################
 ##GAME FUNCTIONS##
 ##################
@@ -394,6 +414,8 @@ def executeCardEffectON(cardType):
 	global LED_COLOR_WIPE
 	global LED_COLOR_WIPE2
 	global _curPowerup
+	global _maxModeThrottle
+	global _maxThrottle 
 
 	#-1: No powerup
 	#0: GREEN SHELL
@@ -417,14 +439,19 @@ def executeCardEffectON(cardType):
 			LED_COLOR_WIPE = Color(0,255,0)
 			LED_COLOR_WIPE2 = Color(100,100,100)
 			LED_MODE = 7 #Set the light effects
+			potFromTo(_maxModeThrottle, GREEN_SHELL_EFFECT, GREEN_SHELL_TIME_DOWN)
 			#Stop other timer threads if there are any in effect - TO DO
 			tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(GREEN_SHELL_DURATION,)) #Set timer thread
 			tmr.start() #Start timer thread
 	elif cardType == 1:
-		print("RED SHELL ON")
-		_curPowerup = cardType
-		tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(6,))
-		tmr.start()
+		if _curPowerup in [-1,3,4]:
+			print("RED SHELL ON")
+			_curPowerup = cardType
+			LED_COLOR_WIPE = Color(255,0,0)
+			LED_COLOR_WIPE2 = Color(100,100,100)
+			LED_MODE = 7 #Set the light effects
+			tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(6,))
+			tmr.start()
 	elif cardType == 2:
 		print("BANANA ON")
 		_curPowerup = cardType
@@ -462,6 +489,7 @@ def executeCardEffectOFF(cardType):
 	if cardType == 0:
 		print("GREEN SHELL OFF")
 		LED_MODE = 4
+		potFromTo(0,1,1)
 	elif cardType == 1:
 		print("RED SHELL OFF")
 		LED_MODE = 4
@@ -502,8 +530,8 @@ if __name__ == '__main__':
 	t.start()
 
 	#init SPI interface
-	spi = spidev.SpiDev() #create SPI object
-	spi.open(0,0) #open spi port 0, device 0
+	spi = spidev.SpiDev()
+	SPI_init()
 
 	if "-autorun" in sys.argv:
 		#while True:

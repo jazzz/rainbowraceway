@@ -12,17 +12,17 @@ def write_pot(input):
 	msb = input >> 8
 	lsb = input & 0xFF
 	resp = spi.xfer([msb,lsb])
-	#print str([msb,lsb]) + ' - ' + str(resp)
+	print str([msb,lsb]) + ' - ' + str(resp)
 
 # Repeatedly switch a MCP4151 digital pot off then on
 while True:
-	for i in range (0,255,10):
+	for i in range (0,255):
 		write_pot(i)
-		time.sleep(0.1)
+		time.sleep(0.2)
 	write_pot(255)
 	time.sleep(1)
-	for i in range (255,0,-10):
+	for i in range (255,0):
 		write_pot(i)
-		time.sleep(0.1)
+		time.sleep(0.2)
 	write_pot(0)
 	time.sleep(1)
