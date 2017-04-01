@@ -1,3 +1,4 @@
+
 #!/usr/bin/python
 
 print ("Importing libraries...")
@@ -29,7 +30,7 @@ GoldMushroomCards	= [] #4
 StarCards		= [] #5
 AdminCards		= [] #6
 #LEDS
-LED_COUNT      = 29      # Number of LED pixels.
+LED_COUNT      = 84      # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
 LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
 LED_DMA        = 5       # DMA channel to use for generating signal (try 5)
@@ -186,7 +187,7 @@ def startLEDStrip(strip):
 		if LED_MODE == 5:
 	                theaterChaseRainbow(strip)
 		if LED_MODE == 6:
-			fadeInOut(strip,LED_COLOR_WIPE,2,1)
+			fadeInOut(strip,LED_COLOR_WIPE,1,1)
 		if LED_MODE == 7:
 			theaterChase2(strip, LED_COLOR_WIPE, LED_COLOR_WIPE2)
 
@@ -387,6 +388,8 @@ def SPI_write_pot(input):
 
 #Interpolates the pot resistor value between two values in specified amount of time
 def potFromTo(initvalue, endvalue, duration):
+	initvalue = abs(1-initvalue)
+	endvalue = abs(1-endvalue)
 	if initvalue > endvalue:
 #		interval = duration * 20
 #		increment = (initvalue - endvalue)/interval
@@ -435,14 +438,13 @@ def executeCardEffectON(cardType):
 			print("GREEN SHELL ON")
 			#Won't count while affected by other effects, except mushrooms (overwrites mushroom effects)
 			_curPowerup = cardType
-			#Lowers the throttle power - TO DO
 			LED_COLOR_WIPE = Color(0,255,0)
 			LED_COLOR_WIPE2 = Color(100,100,100)
 			LED_MODE = 7 #Set the light effects
-			potFromTo(_maxModeThrottle, GREEN_SHELL_EFFECT, GREEN_SHELL_TIME_DOWN)
 			#Stop other timer threads if there are any in effect - TO DO
 			tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(GREEN_SHELL_DURATION,)) #Set timer thread
 			tmr.start() #Start timer thread
+			potFromTo(_maxModeThrottle, GREEN_SHELL_EFFECT, GREEN_SHELL_TIME_DOWN) #set pot resistance
 	elif cardType == 1:
 		if _curPowerup in [-1,3,4]:
 			print("RED SHELL ON")
