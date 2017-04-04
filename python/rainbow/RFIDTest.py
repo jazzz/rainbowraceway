@@ -386,6 +386,11 @@ def SPI_write_pot(input):
 	resp = spi.xfer([msb,lsb])
 	#print str([msb,lsb]) + ' - ' + str(resp)
 
+# Sets the maximum throttle between 0 and 1 (0-100%)	
+def setThrottle(throttle):
+	val = 1 - throttle
+	SPI_write_pot(int(val*255))
+	
 #Interpolates the pot resistor value between two values in specified amount of time
 def potFromTo(initvalue, endvalue, duration):
 	initvalue = abs(1-initvalue)
