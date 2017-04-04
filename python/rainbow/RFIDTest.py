@@ -393,14 +393,10 @@ def setThrottle(throttle):
 	
 #Interpolates the pot resistor value between two values in specified amount of time
 def potFromTo(initvalue, endvalue, duration):
-	initvalue = abs(1-initvalue)
-	endvalue = abs(1-endvalue)
 	if initvalue > endvalue:
-#		interval = duration * 20
-#		increment = (initvalue - endvalue)/interval
-#		print ("pot going down in " + str(interval) + " steps, " + str(increment) + " increase")
-#		print str(int(initvalue*255))
-#		for i in (range(int(initvalue*255),int(endvalue*255),int(increment*255*-1))):
+#		numsteps = duration / 0.2
+#		increment = (initvalue - endvalue)/numsteps
+#		for i in range(numsteps)
 #			print "A=" + str(abs(255-i))
 		for i in range (0, 255, 10):
 			print("DOWN")
