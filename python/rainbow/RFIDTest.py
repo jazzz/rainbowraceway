@@ -18,7 +18,7 @@ print ("Init global vars...")
 #############
 #RFID
 displayDebug     = False #Display reader response information
-sleep_time       = 0.05 #Delay between reader commands
+sleep_time       = 0.02 #Delay between reader commands
 mode             = 0 #reader connection mode: 0= DISCONNECTED / 1 = USB / 2 = SERIAL UART
 _buffer          = bytearray() #read buffer (4096)
 #Card types
@@ -639,7 +639,7 @@ if __name__ == '__main__':
 
 	setThrottle(_maxModeThrottle)
 
-	if "-autorun" in sys.argv:
+	if not "-noautorun" in sys.argv:
 		#while True:
 		initReaderUSB()
 		resetReader()
