@@ -45,7 +45,7 @@ LED_COLOR_WIPE2 = Color(255,255,255)
 LED_USER_COLOR = Color(0,255,255)
 #GAME
 _curPowerup		= -1 #Current powerup (-1 for none)
-_maxModeThrottle	= 0.88 #% of total power (0 - 1 range) determined by the race mode
+_maxModeThrottle	= 0.5 #% of total power (0 - 1 range) determined by the race mode
 _maxThrottle		= 1 #% of total power (0 - 1 range) determined by powerup
 
 ################
@@ -54,15 +54,15 @@ _maxThrottle		= 1 #% of total power (0 - 1 range) determined by powerup
 GREEN_SHELL_DURATION	= 4
 GREEN_SHELL_TIME_DOWN	= 0.2
 GREEN_SHELL_TIME_UP	= 1
-GREEN_SHELL_EFFECT	= 0.7
+GREEN_SHELL_EFFECT	= 0.2
 RED_SHELL_DURATION    = 6
 RED_SHELL_TIME_DOWN   = 0.2
 RED_SHELL_TIME_UP     = 1
-RED_SHELL_EFFECT      = 0.7
+RED_SHELL_EFFECT      = 0
 BANANA_DURATION    = 6
 BANANA_TIME_DOWN   = 1
 BANANA_TIME_UP     = 1
-BANANA_EFFECT      = 0.8
+BANANA_EFFECT      = 0.2
 STAR_DURATION    = 10
 STAR_TIME_DOWN   = 0.5
 STAR_TIME_UP     = 1
@@ -70,7 +70,7 @@ STAR_EFFECT      = 1
 BOLT_DURATION    = 3
 BOLT_TIME_DOWN   = 0.2
 BOLT_TIME_UP     = 0.5
-BOLT_EFFECT      = 0.7
+BOLT_EFFECT      = 0.3
 MUSHROOM_DURATION    = 5
 MUSHROOM_TIME_DOWN   = 0.5
 MUSHROOM_TIME_UP     = 1
@@ -80,10 +80,8 @@ print ("setting up functions...")
 #####################
 #LED STRIP FUNCTIONS#
 #####################
-COLORS = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255)]
-
 def random_color():
-    return random.choice(COLORS)
+    return Color(random.randint(0,255),random.randint(0,255),random.randint(0,255))
 
 #scrolls a single color across all pixels
 def colorWipe(strip, color, wait_ms=50):
@@ -269,6 +267,7 @@ def parseReaderMsg(buf): #Reads the card information from the reader
 	global _buffer
 	global LED_MODE
 	global LED_COLOR_WIPE
+	global LED_USER_COLOR
 	if len(buf) == 0:
 		return
 	_buffer += buf #append the new byte array to global parse buffer
@@ -337,7 +336,7 @@ def parseReaderMsg(buf): #Reads the card information from the reader
 					cardTypesFound[7] += 1
 					lastCardType = 7
 				else:
-					LED_USER_COLOR = Color(random_color())
+					LED_USER_COLOR = random_color()
 					print "Unknown card type. Make sure to register new cards before using them"
 			_buffer = _buffer[tmpLen:]
 			i = -1
