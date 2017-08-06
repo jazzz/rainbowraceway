@@ -31,6 +31,9 @@ GoldMushroomCards	= [] #4
 StarCards		= [] #5
 AdminCards		= [] #6
 BoltCards		= [] #7
+s50ccCards		= [] #8
+s100ccCards		= [] #9
+s150ccCards		= [] #10
 #LEDS
 LED_COUNT      = 180      # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
@@ -45,7 +48,7 @@ LED_COLOR_WIPE2 = Color(255,255,255)
 LED_USER_COLOR = Color(0,255,255)
 #GAME
 _curPowerup		= -1 #Current powerup (-1 for none)
-_maxModeThrottle	= 0.5 #% of total power (0 - 1 range) determined by the race mode
+_maxModeThrottle	= 0.2 #% of total power (0 - 1 range) determined by the race mode
 _maxThrottle		= 1 #% of total power (0 - 1 range) determined by powerup
 
 ################
@@ -262,7 +265,7 @@ def startReading(): #Start reading in inventory mode
 def parseReaderMsg(buf): #Reads the card information from the reader
 	#total number of cards scanned of each type on the last round
 	#if we read more than one type of card at the same time, we'll ignore everything
-	cardTypesFound = [0,0,0,0,0,0,0,0]
+	cardTypesFound = [0,0,0,0,0,0,0,0,0,0,0]
 	lastCardType		= -1
 	global _buffer
 	global LED_MODE
@@ -335,6 +338,18 @@ def parseReaderMsg(buf): #Reads the card information from the reader
 					print "Card type 7: LIGHTNING BOLT"
 					cardTypesFound[7] += 1
 					lastCardType = 7
+                                elif tmpCardID in s50ccCards: #TYPE 8 CARD
+                                        print "Card type 8: 50cc"
+                                        cardTypesFound[8] += 1
+                                        lastCardType = 8
+                                elif tmpCardID in s100ccCards: #TYPE 9 CARD
+                                        print "Card type 9: 100cc"
+                                        cardTypesFound[9] += 1
+                                        lastCardType = 9
+                                elif tmpCardID in s150ccCards: #TYPE 10 CARD
+                                        print "Card type 10: 150cc"
+                                        cardTypesFound[10] += 1
+                                        lastCardType = 10
 				else:
 					LED_USER_COLOR = random_color()
 					print "Unknown card type. Make sure to register new cards before using them"
@@ -395,6 +410,12 @@ def readValidCardList(): #Parses the list of registered cards from the file card
 			AdminCards.append(_card[0])
 		if _card[1] == '7\n':
 			BoltCards.append(_card[0])
+		if _card[1] == '8\n':
+			s50ccCards.append(_card[0])
+		if _card[1] == '9\n':
+			s100ccCards.append(_card[0])
+		if _card[1] == '10\n':
+			s150ccCards.append(_card[0])
 
 		next = f.readline()
 	print 'Green Shell cards: ' +  str(GreenShellCards)
@@ -429,17 +450,20 @@ def setThrottle(throttle):
 	
 #Interpolates the pot resistor value between two values in specified amount of time
 def potFromTo(initvalue, endvalue, duration):
+	global _maxModeThrottle
 	numsteps = duration / 0.05
-	increment = (endvalue-initvalue)/numsteps
-	print('go from ' + str(initvalue) + ' to ' + str(endvalue) + ' in ' + str(numsteps) + ' inc=' + str(increment))
-	curvalue = initvalue
+	tinit = initvalue*_maxModeThrottle
+	tend = endvalue*_maxModeThrottle
+	increment = (tend-tinit)/numsteps
+	print('go from ' + str(tinit) + ' to ' + str(tend) + ' in ' + str(numsteps) + ' inc=' + str(increment))
+	curvalue = tinit
 	steps = 1
 	while steps<numsteps:
 		curvalue = curvalue + increment
 		steps = steps + 1
 		setThrottle(curvalue)
 		time.sleep(0.05)
-	curvalue = endvalue
+	curvalue = tend
 	setThrottle(curvalue)
 
 ##################
@@ -498,7 +522,7 @@ def executeCardEffectON(cardType):
             #Stop other timer threads if there are any in effect - TO DO
             tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(GREEN_SHELL_DURATION,)) #Set timer thread
             tmr.start() #Start timer thread
-            potFromTo(_maxModeThrottle, GREEN_SHELL_EFFECT, GREEN_SHELL_TIME_DOWN) #set pot resistance
+            potFromTo(1, GREEN_SHELL_EFFECT, GREEN_SHELL_TIME_DOWN) #set pot resistance
     elif cardType == 1:
         if _curPowerup in [-1,3,4]:
             print("RED SHELL ON")
@@ -507,7 +531,7 @@ def executeCardEffectON(cardType):
             LED_MODE = 6 #Set the light effects
             tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(RED_SHELL_DURATION,))
             tmr.start()
-            potFromTo(_maxModeThrottle, RED_SHELL_EFFECT, RED_SHELL_TIME_DOWN) #set pot resistance
+            potFromTo(1, RED_SHELL_EFFECT, RED_SHELL_TIME_DOWN) #set pot resistance
     elif cardType == 2:
         if _curPowerup in [-1, 3, 4]:
             print("BANANA ON")
@@ -517,7 +541,7 @@ def executeCardEffectON(cardType):
             LED_MODE = 7  # Set the light effects
             tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(BANANA_DURATION,))
             tmr.start()
-            potFromTo(_maxModeThrottle, BANANA_EFFECT, BANANA_TIME_DOWN)  # set pot resistance
+            potFromTo(1, BANANA_EFFECT, BANANA_TIME_DOWN)  # set pot resistance
     elif cardType == 3:
         if _curPowerup in [-1, 3, 4]:
             print("MUSHROOM ON")
@@ -527,7 +551,7 @@ def executeCardEffectON(cardType):
             LED_MODE = 7  # Set the light effects
             tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(MUSHROOM_DURATION,))
             tmr.start()
-            potFromTo(_maxModeThrottle, MUSHROOM_EFFECT, MUSHROOM_TIME_DOWN)  # set pot resistance
+            potFromTo(1, MUSHROOM_EFFECT, MUSHROOM_TIME_DOWN)  # set pot resistance
     elif cardType == 4:
         print("GOLD MUSHROOM ON")
         _curPowerup = cardType
@@ -549,7 +573,16 @@ def executeCardEffectON(cardType):
             #Stop other timer threads if there are any in effect - TO DO
             tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(BOLT_DURATION,)) #Set timer thread
             tmr.start() #Start timer thread
-            potFromTo(_maxModeThrottle, BOLT_EFFECT, BOLT_TIME_DOWN) #set pot resistance
+            potFromTo(1, BOLT_EFFECT, BOLT_TIME_DOWN) #set pot resistance
+    elif cardType == 8:
+        _maxModeThrottle = 0.2
+        setThrottle(_maxModeThrottle)
+    elif cardType == 9:
+        _maxModeThrottle = 0.5
+        setThrottle(_maxModeThrottle)
+    elif cardType == 10:
+        _maxModeThrottle = 1
+        setThrottle(_maxModeThrottle)
 
 def executeCardEffectOFF(cardType):
     global LED_MODE
@@ -592,19 +625,19 @@ def executeCardEffectOFF(cardType):
     if cardType == 0:
         print("GREEN SHELL OFF")
         LED_MODE = 8
-        potFromTo(_maxThrottle,_maxModeThrottle,GREEN_SHELL_TIME_UP)
+        potFromTo(_maxThrottle,1,GREEN_SHELL_TIME_UP)
     elif cardType == 1:
         print("RED SHELL OFF")
         LED_MODE = 8
-        potFromTo(_maxThrottle,_maxModeThrottle,RED_SHELL_TIME_UP)
+        potFromTo(_maxThrottle,1,RED_SHELL_TIME_UP)
     elif cardType == 2:
         print("BANANA OFF")
         LED_MODE = 8
-        potFromTo(_maxThrottle, _maxModeThrottle, BANANA_TIME_UP)
+        potFromTo(_maxThrottle,1, BANANA_TIME_UP)
     elif cardType == 3:
         print("MUSHROOM OFF")
         LED_MODE = 8
-        potFromTo(_maxThrottle, _maxModeThrottle, MUSHROOM_TIME_UP)
+        potFromTo(_maxThrottle,1, MUSHROOM_TIME_UP)
     elif cardType == 4:
         print("GOLD MUSHROOM OFF")
         LED_MODE = 8
@@ -614,7 +647,7 @@ def executeCardEffectOFF(cardType):
     elif cardType == 7:
         print("LIGHNING BOLT OFF")
         LED_MODE = 8
-        potFromTo(_maxThrottle, _maxModeThrottle, BOLT_TIME_UP)
+        potFromTo(_maxThrottle,1, BOLT_TIME_UP)
 
 def powerupTimer(sec):
     global _curPowerup
