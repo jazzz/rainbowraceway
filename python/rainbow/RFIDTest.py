@@ -10,6 +10,7 @@ import spidev
 import sys
 import select
 import os
+import random
 from neopixel import *
 
 print ("Init global vars...")
@@ -79,6 +80,11 @@ print ("setting up functions...")
 #####################
 #LED STRIP FUNCTIONS#
 #####################
+COLORS = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255)]
+
+def random_color():
+    return random.choice(COLORS)
+
 #scrolls a single color across all pixels
 def colorWipe(strip, color, wait_ms=50):
 	for i in range(strip.numPixels()):
@@ -331,6 +337,7 @@ def parseReaderMsg(buf): #Reads the card information from the reader
 					cardTypesFound[7] += 1
 					lastCardType = 7
 				else:
+					LED_USER_COLOR = Color(random_color())
 					print "Unknown card type. Make sure to register new cards before using them"
 			_buffer = _buffer[tmpLen:]
 			i = -1
@@ -417,7 +424,7 @@ def SPI_write_pot(input):
 def setThrottle(throttle):
 	global _maxThrottle
 	_maxThrottle = throttle
-	val = 1 - throttle
+	val = throttle
 	SPI_write_pot(int(val*255))
 	print(str(throttle))
 	
