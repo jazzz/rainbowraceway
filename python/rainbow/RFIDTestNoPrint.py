@@ -32,6 +32,7 @@ BoltCards		= [] #7
 s50ccCards		= [] #8
 s100ccCards		= [] #9
 s150ccCards		= [] #10
+ColorCycleCards		= [] #11
 #LEDS
 LED_COUNT      = 180      # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
@@ -43,7 +44,7 @@ LED_MODE       = 0
 LED_ON         = False
 LED_COLOR_WIPE = Color(0,0,0)
 LED_COLOR_WIPE2 = Color(255,255,255)
-LED_USER_COLOR = Color(0,255,255)
+LED_USER_COLOR = Color(0,0,255)
 #GAME
 _curPowerup		= -1 #Current powerup (-1 for none)
 _maxModeThrottle	= 0.2 #% of total power (0 - 1 range) determined by the race mode
@@ -77,11 +78,24 @@ MUSHROOM_TIME_DOWN   = 0.1
 MUSHROOM_TIME_UP     = 1
 MUSHROOM_EFFECT      = 50
 
+################
+##TRIKE COLORS##
+################
+Trike_color_list = [(255, 0, 0),(0, 255, 0),(0, 0, 255)]
+Trike_color_index = 0
+
 #####################
 #LED STRIP FUNCTIONS#
 #####################
 def random_color():
     return Color(random.randint(0,255),random.randint(0,255),random.randint(0,255))
+
+def next_color():
+	global Trike_color_list
+	global Trike_color_index
+	Trike_color_index = (Trike_color_index + 1) % len(Trike_color_list)
+	nextelem = Trike_color_list[Trike_color_index]
+	return Color(nextelem[0], nextelem[1], nextelem[2])
 
 #scrolls a single color across all pixels
 def colorWipe(strip, color, wait_ms=50):
@@ -256,8 +270,6 @@ def startReading(): #Start reading in inventory mode
 		if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
 			line = raw_input()
 			break
-  
-
 
 def parseSingleReaderMsg(_buffer): #Reads the card information from the reader
         global LED_MODE
@@ -294,7 +306,6 @@ def parseSingleReaderMsg(_buffer): #Reads the card information from the reader
         elif tmpCardID in BoltCards:  # TYPE 7 CARD
             cardTypesFound[7] += 1
             lastCardType = 7
-
         elif tmpCardID in s50ccCards: #TYPE 8 CARD
             cardTypesFound[8] += 1
             lastCardType = 8
@@ -304,6 +315,10 @@ def parseSingleReaderMsg(_buffer): #Reads the card information from the reader
         elif tmpCardID in s150ccCards: #TYPE 10 CARD
             cardTypesFound[10] += 1
             lastCardType = 10
+	elif tmpCardID in ColorCycleCards: #COLOR CYCLE CARD TYPE 11
+            cardTypesFound[11] += 1
+            lastCardType = 11
+            LED_USER_COLOR = next_color()
         else:
             LED_USER_COLOR = random_color()
 
@@ -312,7 +327,7 @@ def parseSingleReaderMsg(_buffer): #Reads the card information from the reader
 def parseReaderMsg(buf): #Reads the card information from the reader
 	#total number of cards scanned of each type on the last round
 	#if we read more than one type of card at the same time, we'll ignore everything
-	cardTypesFound = [0,0,0,0,0,0,0,0,0,0,0]
+	cardTypesFound = [0,0,0,0,0,0,0,0,0,0,0,0]
 	lastCardType		= -1
 	global _buffer
 	global LED_MODE
@@ -374,6 +389,10 @@ def parseReaderMsg(buf): #Reads the card information from the reader
                                 elif tmpCardID in s150ccCards: #TYPE 10 CARD
                                         cardTypesFound[10] += 1
                                         lastCardType = 10
+                                elif tmpCardID in ColorCycleCards: #COLOR CYCLE CARD TYPE 11
+                                        cardTypesFound[11] += 1
+                                        lastCardType = 11
+                                        LED_USER_COLOR = next_color()
 				else:
 					LED_USER_COLOR = random_color()
 			_buffer = _buffer[tmpLen:]
@@ -427,6 +446,8 @@ def readValidCardList(): #Parses the list of registered cards from the file card
 			s100ccCards.append(_card[0])
 		if _card[1] == '10\n':
 			s150ccCards.append(_card[0])
+                if _card[1] == '11\n':
+                        ColorCycleCards.append(_card[0])
 
 		next = f.readline()
 
