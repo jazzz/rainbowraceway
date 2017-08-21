@@ -1,7 +1,6 @@
 
 #!/usr/bin/python
 
-print ("Importing libraries...")
 import serial
 import time
 import binascii
@@ -13,7 +12,6 @@ import os
 import random
 from neopixel import *
 
-print ("Init global vars...")
 #############
 #global vars#
 #############
@@ -57,7 +55,7 @@ _maxThrottle		= 1 #% of total power (0 - 1 range) determined by powerup
 GREEN_SHELL_DURATION	= 4
 GREEN_SHELL_TIME_DOWN	= 0.2
 GREEN_SHELL_TIME_UP	= 1
-GREEN_SHELL_EFFECT	= 0.2
+GREEN_SHELL_EFFECT	= 0.1
 RED_SHELL_DURATION    = 6
 RED_SHELL_TIME_DOWN   = 0.2
 RED_SHELL_TIME_UP     = 1
@@ -65,21 +63,20 @@ RED_SHELL_EFFECT      = 0
 BANANA_DURATION    = 6
 BANANA_TIME_DOWN   = 1
 BANANA_TIME_UP     = 1
-BANANA_EFFECT      = 0.2
+BANANA_EFFECT      = 0.15
 STAR_DURATION    = 10
 STAR_TIME_DOWN   = 0.5
 STAR_TIME_UP     = 1
-STAR_EFFECT      = 1
+STAR_EFFECT      = 15
 BOLT_DURATION    = 3
 BOLT_TIME_DOWN   = 0.2
 BOLT_TIME_UP     = 0.5
 BOLT_EFFECT      = 0.3
-MUSHROOM_DURATION    = 1
+MUSHROOM_DURATION    = 2
 MUSHROOM_TIME_DOWN   = 0.1
 MUSHROOM_TIME_UP     = 1
-MUSHROOM_EFFECT      = 20
+MUSHROOM_EFFECT      = 50
 
-print ("setting up functions...")
 #####################
 #LED STRIP FUNCTIONS#
 #####################
@@ -236,7 +233,6 @@ def initReaderUSB(): #Sets up the reader connected on USB Port
         ser.baudrate = 115200
         mode = 1
     except:
-        print "Cannot connect to reader. Make sure the pins are configured for USB and the reader is connected"
         try:
             input("Press ENTER to continue")
         except:
@@ -251,7 +247,6 @@ def readContinuous(): #inventory mode (continuous read)
 def startReading(): #Start reading in inventory mode
 	global LED_MODE
 	clearScreen()
-	print("Reading tags... Press ENTER to stop")
 	LED_MODE = 8
 	while True:
 		readContinuous()
@@ -275,61 +270,43 @@ def parseSingleReaderMsg(_buffer): #Reads the card information from the reader
         tmpData = _buffer[3:-1]
 
         tmpCardID = binascii.hexlify(tmpData[11:len(tmpData) - 1])  # Split the rea$
-        if displayDebug:
-            # print "Msg = " + binascii.hexlify(tmpMsg)  # All the message
-            # print "Len = " + str(tmpLen)  # Len of the message data
-            print "Dir = " + str(tmpDir)  # Address of the reader
-            print "Data = " + binascii.hexlify(tmpData)  # message data
-        print "CardID = " + tmpCardID
         if tmpCardID in GreenShellCards:  # TYPE 0 CARD
-            print "Card type 0: GREEN SHELL"
             cardTypesFound[0] += 1
             lastCardType = 0
         elif tmpCardID in RedShellCards:  # TYPE 1 CARD
-            print "Card type 1: RED SHELL"
             cardTypesFound[1] += 1
             lastCardType = 1
         elif tmpCardID in BananaCards:  # TYPE 2 CARD
-            print "Card type 2: BANANA"
             cardTypesFound[2] += 1
             lastCardType = 2
         elif tmpCardID in MushroomCards:  # TYPE 3 CARD
-            print "Card type 3: MUSHROOM"
             cardTypesFound[3] += 1
             lastCardType = 3
         elif tmpCardID in GoldMushroomCards:  # TYPE 4 CARD
-            print "Card type 4: GOLD MUSHROOM"
             cardTypesFound[4] += 1
             lastCardType = 4
         elif tmpCardID in StarCards:  # TYPE 5 CARD
-            print "Card type 5: STAR"
             cardTypesFound[5] += 1
             lastCardType = 5
         elif tmpCardID in AdminCards:  # TYPE 6 CARD
-            print "Card type 6: ADMIN"
             cardTypesFound[6] += 1
             lastCardType = 6
         elif tmpCardID in BoltCards:  # TYPE 7 CARD
-            print "Card type 7: LIGHTNING BOLT"
             cardTypesFound[7] += 1
             lastCardType = 7
 
         elif tmpCardID in s50ccCards: #TYPE 8 CARD
-            print "Card type 8: 50cc"
             cardTypesFound[8] += 1
             lastCardType = 8
         elif tmpCardID in s100ccCards: #TYPE 9 CARD
-            print "Card type 9: 100cc"
             cardTypesFound[9] += 1
             lastCardType = 9
         elif tmpCardID in s150ccCards: #TYPE 10 CARD
-            print "Card type 10: 150cc"
             cardTypesFound[10] += 1
             lastCardType = 10
         else:
             LED_USER_COLOR = random_color()
 
-            print "Unknown card type. Make sure to register new cards before"
         executeCardEffectON(lastCardType)
 
 def parseReaderMsg(buf): #Reads the card information from the reader
@@ -357,105 +334,69 @@ def parseReaderMsg(buf): #Reads the card information from the reader
 			if tmpLen == 12: #last part of msg: total number of tags identified in the last round
 				totalCards = int(binascii.hexlify(tmpData[len(tmpData)-4:]))
 				if totalCards > 0:
-					print("Total number of tags scanned in the last round: " + str(totalCards))
-					if displayDebug:
-						print("Card type list: " + str(cardTypesFound))
-						print("Last card type found: " + str(lastCardType))
 					#If the number of cards scanned of the last type doesn't match the total number of cards, we have too many types of cards
 					if cardTypesFound[lastCardType] != totalCards:
-						print("Too many types in one read")
 						executeCardEffectON(lastCardType)
 					else:
-						print("Type check OK. Card type = ") + str(lastCardType)
 						executeCardEffectON(lastCardType)
 			else:
 				tmpCardID = binascii.hexlify(tmpData[11:len(tmpData)-1]) #Split the reader response and check card type
-				if displayDebug:
-					print "Msg = " + binascii.hexlify(tmpMsg) #All the message
-					print "Len = " + str(tmpLen) #Len of the message data
-					print "Dir = " + str(tmpDir) #Address of the reader
-					print "Data = " + binascii.hexlify(tmpData) #message data
-				print "CardID = " + tmpCardID
 				if tmpCardID in GreenShellCards: #TYPE 0 CARD
-					print "Card type 0: GREEN SHELL"
 					cardTypesFound[0] += 1
 					lastCardType = 0
 				elif tmpCardID in RedShellCards: #TYPE 1 CARD
-					print "Card type 1: RED SHELL"
 					cardTypesFound[1] += 1
 					lastCardType = 1
 				elif tmpCardID in BananaCards: #TYPE 2 CARD
-					print "Card type 2: BANANA"
 					cardTypesFound[2] += 1
 					lastCardType = 2
 				elif tmpCardID in MushroomCards: #TYPE 3 CARD
-					print "Card type 3: MUSHROOM"
 					cardTypesFound[3] += 1
 					lastCardType = 3
 				elif tmpCardID in GoldMushroomCards: #TYPE 4 CARD
-					print "Card type 4: GOLD MUSHROOM"
 					cardTypesFound[4] += 1
 					lastCardType = 4
 				elif tmpCardID in StarCards: #TYPE 5 CARD
-					print "Card type 5: STAR"
 					cardTypesFound[5] += 1
 					lastCardType = 5
 				elif tmpCardID in AdminCards: #TYPE 6 CARD
-					print "Card type 6: ADMIN"
 					cardTypesFound[6] += 1
 					lastCardType = 6
 				elif tmpCardID in BoltCards: #TYPE 7 CARD
-					print "Card type 7: LIGHTNING BOLT"
 					cardTypesFound[7] += 1
 					lastCardType = 7
                                 elif tmpCardID in s50ccCards: #TYPE 8 CARD
-                                        print "Card type 8: 50cc"
                                         cardTypesFound[8] += 1
                                         lastCardType = 8
                                 elif tmpCardID in s100ccCards: #TYPE 9 CARD
-                                        print "Card type 9: 100cc"
                                         cardTypesFound[9] += 1
                                         lastCardType = 9
                                 elif tmpCardID in s150ccCards: #TYPE 10 CARD
-                                        print "Card type 10: 150cc"
                                         cardTypesFound[10] += 1
                                         lastCardType = 10
 				else:
 					LED_USER_COLOR = random_color()
-					print "Unknown card type. Make sure to register new cards before using them"
 			_buffer = _buffer[tmpLen:]
 			i = -1
 		i += 1
 
 
 def clearScreen(): #Prints a bunch of newlines to clear the terminal screen
-	print ("\n" * 100)
-
+        pass
 def showFunctions(): #Shows the terminal interface
 	global LED_COLOR_WIPE
 	global LED_MODE
 
-	print "Reader functions:"
-	print "1: Connect to reader via USB"
-	print "2: Reset Reader"
-	print "3: Start Reading"
-	print "9: Debug display: " +  str(displayDebug)
-	print "0: Exit"
-	print ("\n" * 2)
 
 	#Change LED color to show reader connection status
 	LED_MODE = 6
 	if mode == 0:
-		print "Reader status: Disconnected"
 		LED_COLOR_WIPE = Color(150,0,0)
 	elif mode == 1:
-		print "Reader status: Connected on TTYUSB0"
 		LED_COLOR_WIPE = Color(0,150,0)
 	elif mode == 2:
-		print "Reader status: Connected on TTYS0"
 		LED_COLOR_WIPE = Color(0,150,0)
 	
-	print ("\n" *2)
 	option = input("Choose an option: ")
 	return option
 
@@ -488,14 +429,6 @@ def readValidCardList(): #Parses the list of registered cards from the file card
 			s150ccCards.append(_card[0])
 
 		next = f.readline()
-	print 'Green Shell cards: ' +  str(GreenShellCards)
-	print 'Red Shell cards: ' +  str(RedShellCards)
-	print 'Banana cards: ' +  str(BananaCards)
-	print 'Mushroom cards: ' +  str(MushroomCards)
-	print 'Gold mushroom cards: ' +  str(GoldMushroomCards)
-	print 'Star cards: ' + str(StarCards)
-	print 'Admin cards: ' +  str(AdminCards)
-	print 'Lightning bolt cards: ' +  str(BoltCards)
 
 ###############
 #SPI FUNCTIONS#
@@ -516,7 +449,6 @@ def setThrottle(throttle):
 	_maxThrottle = throttle
 	val = throttle
 	SPI_write_pot(int(val*255))
-	print(str(throttle))
 	
 #Interpolates the pot resistor value between two values in specified amount of time
 def potFromTo(initvalue, endvalue, duration):
@@ -525,7 +457,6 @@ def potFromTo(initvalue, endvalue, duration):
 	tinit = initvalue*_maxModeThrottle
 	tend = endvalue*_maxModeThrottle
 	increment = (tend-tinit)/numsteps
-	print('go from ' + str(tinit) + ' to ' + str(tend) + ' in ' + str(numsteps) + ' inc=' + str(increment))
 	curvalue = tinit
 	steps = 1
 	while steps<numsteps:
@@ -584,7 +515,6 @@ def executeCardEffectON(cardType):
     #MAIN POWERUP LOGIC GOES HERE
     if cardType == 0:
         if _curPowerup in [-1,3,4]:
-            print("GREEN SHELL ON")
             #Won't count while affected by other effects, except mushrooms (overwrites mushroom effects)
             _curPowerup = cardType
             LED_COLOR_WIPE = Color(0,255,0)
@@ -595,7 +525,6 @@ def executeCardEffectON(cardType):
             potFromTo(1, GREEN_SHELL_EFFECT, GREEN_SHELL_TIME_DOWN) #set pot resistance
     elif cardType == 1:
         if _curPowerup in [-1,3,4]:
-            print("RED SHELL ON")
             _curPowerup = cardType
             LED_COLOR_WIPE = Color(255,0,0)
             LED_MODE = 6 #Set the light effects
@@ -604,7 +533,6 @@ def executeCardEffectON(cardType):
             potFromTo(1, RED_SHELL_EFFECT, RED_SHELL_TIME_DOWN) #set pot resistance
     elif cardType == 2:
         if _curPowerup in [-1, 3, 4]:
-            print("BANANA ON")
             _curPowerup = cardType
             LED_COLOR_WIPE = Color(255, 255, 0)
             LED_COLOR_WIPE2 = Color(100, 100, 100)
@@ -614,7 +542,6 @@ def executeCardEffectON(cardType):
             potFromTo(1, BANANA_EFFECT, BANANA_TIME_DOWN)  # set pot resistance
     elif cardType == 3:
         if _curPowerup in [-1, 3, 4]:
-            print("MUSHROOM ON")
             _curPowerup = cardType
             LED_COLOR_WIPE = Color(255, 0, 0)
             LED_COLOR_WIPE2 = Color(100, 100, 100)
@@ -623,20 +550,19 @@ def executeCardEffectON(cardType):
             tmr.start()
             potFromTo(1, MUSHROOM_EFFECT, MUSHROOM_TIME_DOWN)  # set pot resistance
     elif cardType == 4:
-        print("GOLD MUSHROOM ON")
         _curPowerup = cardType
         tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(10,))
         tmr.start()
     elif cardType == 5:
-        print("STAR ON")
         _curPowerup = cardType
-        tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(10,))
+	LED_MODE = 4
+        tmr = threading.Thread(name='TIMER', target=powerupTimer, args=(STAR_DURATION,))
         tmr.start()
+	potFromTo(1, STAR_EFFECT, STAR_TIME_DOWN)
     elif cardType == 6:
-        print("ADMIN MODE ON")
+        pass
     elif cardType == 7:
         if _curPowerup in [-1, 3, 4]:
-            print("LIGHTNING BOLT ON")
             _curPowerup = cardType
             LED_COLOR_WIPE = Color(255,255,0)
             LED_MODE = 6 #Set the light effects
@@ -645,7 +571,7 @@ def executeCardEffectON(cardType):
             tmr.start() #Start timer thread
             potFromTo(1, BOLT_EFFECT, BOLT_TIME_DOWN) #set pot resistance
     elif cardType == 8: #50cc speed
-        _maxModeThrottle = 0.02
+        _maxModeThrottle = 0.04
         setThrottle(_maxModeThrottle)
     elif cardType == 9: #100cc speed
         _maxModeThrottle = 0.3
@@ -693,29 +619,23 @@ def executeCardEffectOFF(cardType):
 
     #MAIN POWERUP DEACTIVATION LOGIC GOES HERE
     if cardType == 0:
-        print("GREEN SHELL OFF")
         LED_MODE = 8
         potFromTo(_maxThrottle,1,GREEN_SHELL_TIME_UP)
     elif cardType == 1:
-        print("RED SHELL OFF")
         LED_MODE = 8
         potFromTo(_maxThrottle,1,RED_SHELL_TIME_UP)
     elif cardType == 2:
-        print("BANANA OFF")
         LED_MODE = 8
         potFromTo(_maxThrottle,1, BANANA_TIME_UP)
     elif cardType == 3:
-        print("MUSHROOM OFF")
         LED_MODE = 8
         potFromTo(_maxThrottle,1, MUSHROOM_TIME_UP)
     elif cardType == 4:
-        print("GOLD MUSHROOM OFF")
         LED_MODE = 8
     elif cardType == 5:
-        print("STAR OFF")
         LED_MODE = 8
+	potFromTo(_maxThrottle,1,STAR_TIME_UP)
     elif cardType == 7:
-        print("LIGHNING BOLT OFF")
         LED_MODE = 8
         potFromTo(_maxThrottle,1, BOLT_TIME_UP)
 
@@ -753,10 +673,8 @@ if __name__ == '__main__':
  #       serial.baudrate = 115200
 
      
-#        with Yr903(serial,printData) as Y:
 #            threading.Timer(2,parseSingleReaderMsg).start()
 #            Y.startRealtimeMode() 
-        print("HEREREE")
 	if not "-noautorun" in sys.argv:
 		#while True:
 		initReaderUSB()
@@ -767,7 +685,6 @@ if __name__ == '__main__':
 #	clearScreen()
 #	usrOption = showFunctions()
 #	if (usrOption > 1) and (mode == 0) and (usrOption in validOptions):
-#		print "ERROR: Connect to reader before this"
 #		try:
 #			input("Press ENTER to continue")
 #		except:
@@ -786,7 +703,6 @@ if __name__ == '__main__':
 #	elif usrOption == 9:
 #		displayDebug = not displayDebug
 #	elif not (usrOption in validOptions):
-#		print "Incorrect option. Please try again"
 #		try:
 #			input("Press ENTER to continue")
 #		except:
