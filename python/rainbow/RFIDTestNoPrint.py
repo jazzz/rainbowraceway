@@ -81,7 +81,7 @@ MUSHROOM_EFFECT      = 50
 ################
 ##TRIKE COLORS##
 ################
-Trike_color_list = [(255, 0, 0),(0, 255, 0),(0, 0, 255)]
+Trike_color_list = [(255, 0, 0),(0, 255, 0),(128, 0, 200),(0,0,255),(255,150,0)]
 Trike_color_index = 0
 
 #####################
@@ -229,7 +229,7 @@ def startLEDStrip(strip):
         if LED_MODE == 7:
             theaterChase2(strip, LED_COLOR_WIPE, LED_COLOR_WIPE2)
         if LED_MODE == 8:
-            fadeInOut(strip, LED_USER_COLOR, 2, 1)
+            fadeInOut(strip, LED_USER_COLOR, 1, 1)
 
 def stopLEDStrip():
     global LED_ON
