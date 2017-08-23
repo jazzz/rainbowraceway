@@ -152,7 +152,6 @@ def parseSingleReaderMsg(_buffer): #Reads the card information from the reader
 	elif tmpCardID in ColorCycleCards: #COLOR CYCLE CARD TYPE 11
             cardTypesFound[11] += 1
             lastCardType = 11
-        else:
 
 
         executeCardEffectON(lastCardType)
@@ -222,7 +221,6 @@ def parseReaderMsg(buf): #Reads the card information from the reader
                                 elif tmpCardID in ColorCycleCards: #COLOR CYCLE CARD TYPE 11
                                         cardTypesFound[11] += 1
                                         lastCardType = 11
-				else:
 			_buffer = _buffer[tmpLen:]
 			i = -1
 		i += 1
@@ -445,7 +443,6 @@ def executeCardEffectOFF(cardType):
         potFromTo(_maxThrottle,1, BANANA_TIME_UP)
     elif cardType == 3:
         potFromTo(_maxThrottle,1, MUSHROOM_TIME_UP)
-    elif cardType == 4:
     elif cardType == 5:
 	potFromTo(_maxThrottle,1,STAR_TIME_UP)
     elif cardType == 7:
