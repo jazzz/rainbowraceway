@@ -420,7 +420,7 @@ def showFunctions(): #Shows the terminal interface
 	return option
 
 def readValidCardList(): #Parses the list of registered cards from the file cardList.txt
-	f = open("/home/pi/rpi_ws281x/python/rainbow/cardList.txt")
+	f = open("/home/pi/rainbowraceway/python/rainbow/cardList.txt")
 	next = f.readline()
 	while next != "":
 		_card = next.split(':')
