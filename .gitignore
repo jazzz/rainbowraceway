@@ -1,7 +1,2 @@
-.sconsign.dblite
+.idea/
 *.pyc
-test
-newtest
-*.o
-*.a
-*.swp
