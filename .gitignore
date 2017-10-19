@@ -1,2 +1,7 @@
+deps/
+pyEnv/
 .idea/
+
 *.pyc
+
+run.sh
