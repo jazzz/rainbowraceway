@@ -36,6 +36,20 @@ async def async_cancel(cancelToken, t):
     await asyncio.sleep(t)
     cancelToken.cancel()
 
+class CancelToken:
+    def __init__(self, loop,parentToken=None):
+        self.loop = loop
+        self._future = loop.create_future()
+
+    def isCancelled(self):
+        return self._future.done()
+
+    def cancel(self):
+        #Discard Action if cancelToken is already cancelled
+        if self._future.done():
+            return
+
+        self._future.set_result(True)
 
 #################################
 ## LED Utils

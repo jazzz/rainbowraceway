@@ -1,28 +1,16 @@
 import inspect
 import asyncio
 import random
-from enum import Enum
-from utils import create_and_init_neopixels, setup_logging, logging,getLogger, async_cancel
-from behaviours import *
+
+from src.behaviours import *
+from src.tags import *
+from src.utils import async_cancel, CancelToken
+from src.utils import create_and_init_neopixels
+from src.utils import setup_logging, logging, getLogger
 
 
 setup_logging(logging.DEBUG)
 LOG_TAG = "core"
-
-class CancelToken:
-    def __init__(self, loop,parentToken=None):
-        self.loop = loop
-        self._future = loop.create_future()
-
-    def isCancelled(self):
-        return self._future.done()
-
-    def cancel(self):
-        #Discard Action if cancelToken is already cancelled
-        if self._future.done():
-            return
-
-        self._future.set_result(True)
 
 class MockTagReader:
 
@@ -40,84 +28,82 @@ class MockTagReader:
         await asyncio.sleep(self.delay)
         return random.choice(self.tagList)
 
-class TagType(Enum):
-    ADMIN_TASK = 0
-    POWERUP1 = 1
-    POWERUP2 = 2
-
-
-tagTypeMap = {
-    "AFF345D3": TagType.ADMIN_TASK,
-    "54D31AF2": TagType.POWERUP1,
-    "84D31AF3": TagType.POWERUP2
-}
-
-
-
-
-class TaskController:
+class RaceController:
     def __init__(self, loop, ledStrip,ct):
 
         self.loop = loop
-        self.rootCt = ct
         self.ledStrip = ledStrip
 
         self.subTask = loop.create_future()
         self.subTask.cancel()
 
-        self.dt = DefaultBehaviour()
-        self.dt.launch(loop,self.ledStrip)
+        self.defaultTask = DefaultBehaviour()
+        self.launchDefaultTask()
 
         self.tagTaskMap = {
-            #TagType.ADMIN_TASK: self.async_onCoinsAdded,
             TagType.POWERUP1: ExamplePowerup,
             TagType.POWERUP2: OtherExamplePowerup,
         }
 
-    def createTask(self, loop, tagSource):
-        return loop.create_task(self.async_tagProcessor(tagSource))
+    def launchDefaultTask(self):
+        self.defaultTask.launch(loop, self.ledStrip)
 
     async def async_launchOneshotTask(self, state):
+        self.defaultTask.cancel()
+        await state.launch(self.loop,self.ledStrip)
+        self.launchDefaultTask()
 
-        self.dt.cancel()
+    def onTag(self,tag):
+        if not self.subTask.done():
+            getLogger().getChild(LOG_TAG).info("TagOcclusion: Tag detected, but current Behaviour not finished")
+            return
 
-        state.launch(self.loop,self.ledStrip)
-        await state.task()
+        if tag not in TagTypeMap_Powerup:
+            getLogger().getChild(LOG_TAG).info("UnknownTag: New Tag detected, but Type is not Specified - Tag:%s"%(tag))
+            return
 
-        self.dt.launch(self.loop,self.ledStrip)
+        tagType = TagTypeMap_Powerup[tag]
 
-    @asyncio.coroutine
+        if tagType not in self.tagTaskMap:
+            getLogger().getChild(LOG_TAG).error("ProgramingError: No behaviour specified for '%s' in tagTypeMap" %(tagType))
+            return
+
+        self.subTask = self.loop.create_task(
+            self.async_launchOneshotTask(self.tagTaskMap[tagType]())
+        )
+
+
+class AdminController:
+
+    def __init__(self,loop,cancelToken):
+        self.loop = loop
+        self.cancelToken = cancelToken;
+        self.subController = None
+
+    def onStartup(self):
+        ledStrip = create_and_init_neopixels()
+        self.subController = RaceController(loop, ledStrip, cancelToken)
+
+    def onTag(self,tag):
+        getLogger().getChild(LOG_TAG).info("AdminTag RECV - Tag:%s" % (tag))
+
+    def createTask(self, loop, tagSource):
+        self.onStartup()
+        return loop.create_task(self.async_tagProcessor(tagSource))
+
     async def async_tagProcessor(self, tagGenerator):
         async for tag in tagGenerator:
+            if tag in TagTypeMap_Admin:
+                self.onTag(tag)
+            else:
+                self.subController.onTag(tag)
 
-            if not self.subTask.done():
-                getLogger().getChild(LOG_TAG).info(
-                    "TagOcclusion: Tag detected, but current Behaviour not finished"
-                )
-                continue
-
-            if tag not in tagTypeMap:
-                getLogger().getChild(LOG_TAG).info(
-                    "UnknownTag: New Tag detected, but Type is not Specified - Tag:%s"%(tag)
-                )
-                continue
-
-            tagType = tagTypeMap[tag]
-
-            if tagType not in self.tagTaskMap:
-                getLogger().getChild(LOG_TAG).error("ProgramingError: No behaviour specified for '%s' in tagTypeMap" %(tagType))
-                continue
-
-            self.subTask = self.loop.create_task(
-                self.async_launchOneshotTask(self.tagTaskMap[tagType]())
-            )
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     cancelToken = CancelToken(loop)
 
-    ledStrip = create_and_init_neopixels()
-    taskController = TaskController(loop, ledStrip,cancelToken)
+    taskController = AdminController(loop, cancelToken)
 
     tasks = []
 

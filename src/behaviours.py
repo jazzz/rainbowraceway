@@ -34,6 +34,7 @@ class Behaviour:
 
         self.loop = loop
         self.__task = loop.create_task(self.__taskLoop(strip))
+        return self.__task
 
     def task(self):
         return self.__task
