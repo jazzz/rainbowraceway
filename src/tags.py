@@ -11,6 +11,6 @@ TagTypeMap_Admin = {
 }
 
 TagTypeMap_Powerup = {
-    "54D31AF2": TagType.POWERUP1,
+    "005180000c0076129092bf": TagType.POWERUP1,
     "84D31AF3": TagType.POWERUP2
 }

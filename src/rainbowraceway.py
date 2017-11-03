@@ -1,32 +1,20 @@
 import inspect
 import asyncio
+import janus
 import random
+import serial
+import serial.aio
 
-from src.behaviours import *
-from src.tags import *
-from src.utils import async_cancel, CancelToken
-from src.utils import create_and_init_neopixels
-from src.utils import setup_logging, logging, getLogger
+from behaviours import *
+from rfid_reader import TagStream,RfidReader
+from tags import *
+from utils import async_cancel, CancelToken
+from utils import create_and_init_neopixels
+from utils import setup_logging, logging, getLogger
 
 
 setup_logging(logging.DEBUG)
 LOG_TAG = "core"
-
-class MockTagReader:
-
-    def __init__(self, cancelToken, delay):
-        self.cancelToken = cancelToken
-        self.delay = delay
-        self.tagList = ["AFF345D3", "54D31AF2","84D31AF3","FFFFFFFF"]
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        if self.cancelToken.isCancelled():
-            raise StopAsyncIteration
-        await asyncio.sleep(self.delay)
-        return random.choice(self.tagList)
 
 class RaceController:
     def __init__(self, loop, ledStrip,ct):
@@ -46,7 +34,7 @@ class RaceController:
         }
 
     def launchDefaultTask(self):
-        self.defaultTask.launch(loop, self.ledStrip)
+        self.defaultTask.launch(self.loop, self.ledStrip)
 
     async def async_launchOneshotTask(self, state):
         self.defaultTask.cancel()
@@ -82,7 +70,7 @@ class AdminController:
 
     def onStartup(self):
         ledStrip = create_and_init_neopixels()
-        self.subController = RaceController(loop, ledStrip, cancelToken)
+        self.subController = RaceController(self.loop, ledStrip, self.cancelToken)
 
     def onTag(self,tag):
         getLogger().getChild(LOG_TAG).info("AdminTag RECV - Tag:%s" % (tag))
@@ -103,11 +91,13 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     cancelToken = CancelToken(loop)
 
+    queue = janus.Queue(loop=loop);
     taskController = AdminController(loop, cancelToken)
-
+    tagStream = TagStream(queue.async_q)
     tasks = []
 
-    tasks.append(taskController.createTask(loop, MockTagReader(cancelToken, 5)))
+    tasks.append(serial.aio.create_serial_connection(loop, lambda: RfidReader(queue.sync_q), '/dev/ttyUSB0', baudrate=115200))
+    tasks.append(taskController.createTask(loop, tagStream))
     tasks.append(loop.create_task(async_cancel(cancelToken, 20)))
-    return_value = loop.run_until_complete(asyncio.gather(*tasks))
+    loop.run_until_complete(asyncio.gather(*tasks))
 
