@@ -2,6 +2,7 @@
 ## logging Utils
 #################################
 import logging
+import sys
 import time
 
 LOG_NAME = "rainbowraceway"
@@ -114,4 +115,13 @@ def create_and_init_neopixels(LED_COUNT=16, LED_PIN=18, LED_FREQ_HZ=800000, LED_
         strip.setPixelColor(i,0)
         strip.show()
     return strip
+
+
+#################################
+## ThrottleControl
+#################################
+
+def closeTo(a,b):
+    return abs(a-b) < sys.float_info.epsilon
+
 

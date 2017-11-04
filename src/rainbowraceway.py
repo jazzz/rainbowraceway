@@ -2,8 +2,14 @@ import inspect
 import asyncio
 import janus
 import random
+import platform
 import serial
 import serial.aio
+
+if platform.system() != "Windows":
+    import spidev
+else:
+    print("SPIDEV not imported")
 
 from behaviours import *
 from rfid_reader import TagStream,RfidReader
@@ -11,10 +17,53 @@ from tags import *
 from utils import async_cancel, CancelToken
 from utils import create_and_init_neopixels
 from utils import setup_logging, logging, getLogger
+from utils import closeTo
 
 
 setup_logging(logging.DEBUG)
 LOG_TAG = "core"
+
+
+class ThrottleCtrl:
+
+    def __init__(self):
+        self.init_spi()
+        self.currThrottle = None
+        self.maxThrottle= 1  # % of total power (0 - 1 range) determined by powerup
+        self.baseThrottle = 0.2  # % of total power (0 - 1 range) determined by the race mode
+
+    def init_spi(self):
+        self.spi = spidev.SpiDev()
+        self.spi.open(0, 0)
+        self.spi.max_speed_hz = 10000
+
+    def _write_pot(self,input):
+        msb = input >> 8
+        lsb = input & 0xFF
+        resp = self.spi.xfer([msb, lsb])
+
+    # Sets the maximum throttle between 0 and 1 (0-100%)
+    def configureMaxThrottle(self,throttle):
+        self.maxThrottle = throttle
+        self._write_pot(int(throttle * 255))
+        getLogger().getChild(LOG_TAG).info("SetMaxThrottle(%d)" % (throttle))
+
+    def configureBaseThrottle(self,throttle):
+        self.baseThrottle = throttle
+        self.currThrottle = throttle
+        getLogger().getChild(LOG_TAG).info("SetBaseThrottle(%d)" % (throttle))
+
+    def setThrottle(self,val):
+        self._write_pot(val)
+
+    async def lerpThrottle(self,powerValue,totalDuration):
+        distance = (powerValue - self.currThrottle)
+        stepSize = distance / (float(totalDuration) / self.deltaT)
+        asyncio.sleep(0)
+        while not closeTo(self.currThrottle, powerValue):
+            await asyncio.sleep(self.deltaT)
+            self.setThrottle(self.currThrottle + stepSize)
+        self.currThrottle = powerValue
 
 class RaceController:
     def __init__(self, loop, ledStrip,ct):
