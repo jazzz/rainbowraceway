@@ -13,7 +13,7 @@ LED_DIR="$DEPS_DIR/rpi_ws281x"
 # Executables
 INSTALL_PKG='apt-get install --assume-yes'
 PYTHON="$PYENV_DIR/bin/$PY_VERSION"
-PIP="$PYENV_DIR/bin/pip"
+PIP="$PYENV_DIR/bin/pip3"
 
 if [ "clean" = "$cmd" ]; then
 	echo "CLEANING"
@@ -31,7 +31,7 @@ fi
 ## Install Packages
 #################################
 
-$INSTALL_PKG virtualenv scons $PY_VERSION-dev swig
+$INSTALL_PKG virtualenv scons $PY_VERSION-dev swig git
 
 #################################
 ## Create Virtual Env
@@ -57,13 +57,13 @@ if [ ! -d "$LED_DIR" ]; then
 	pushd $LED_DIR/python
 	$PYTHON setup.py install
 	popd
-	echo ".... Success"
+	echo ".... Finished"
 fi
 
 #################################
 ## Install Python Modules
 #################################
-
+$PIP install janus 'pyserial==3.0' 
 
 #################################
 ## Generate Run Script
@@ -71,8 +71,37 @@ fi
 
 echo ".... Generate Run Script"
 touch $PROJPATH/run.sh
-echo "sudo $PYTHON $PROJPATH/src/rainbowraceway.py" > $PROJPATH/run.sh
+echo "#!/bin/sh -
+sudo $PYTHON $PROJPATH/src/rainbowraceway.py
+" > $PROJPATH/run.sh
+
 chmod +x $PROJPATH/run.sh
 
+
+
+#################################
+## Install Systemd
+#################################
+
+echo ".... Intall Service"
+
+echo "
+[Unit]
+Description=Rainbow Raceway Trike Control
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi
+ExecStart=$PROJPATH/run.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+" > /etc/systemd/system/rainbowraceway.service
+
+systemctl daemon-reload
+systemctl restart rainbowraceway.service
+systemctl enable rainbowraceway.service
 
 echo "...Finished..."
