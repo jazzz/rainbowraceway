@@ -17,12 +17,13 @@ class Behaviour:
     def onDraw(self):
         pass
 
-    async def __taskLoop(self,strip):
+    async def __taskLoop(self,ctx):
+        self.ctx = ctx
         self.onEnter()
         try:
             await asyncio.sleep(0)
             while True:
-                self.onDraw(strip)
+                self.onDraw()
                 await asyncio.sleep(float(1)/self.fps)
         except asyncio.CancelledError:
             pass
@@ -30,10 +31,10 @@ class Behaviour:
         self.cancelTasks()
         self.onExit()
 
-    def launch(self,loop,strip):
+    def launch(self,loop,ctx):
 
         self.loop = loop
-        self.__task = loop.create_task(self.__taskLoop(strip))
+        self.__task = loop.create_task(self.__taskLoop(ctx))
         return self.__task
 
     def task(self):
@@ -64,11 +65,11 @@ class DefaultBehaviour(Behaviour):
     def onExit(self):
         getLogger().getChild(LOG_TAG).debug("Exit %s" % (type(self).__name__))
 
-    def onDraw(self,strip):
+    def onDraw(self):
         self.mode = 1-self.mode
-        for i in range(strip.numPixels()):
-            strip.setPixelColor(i,Color(self.mode*255,0,0))
-        strip.show()
+        for i in range(self.ctx.strip.numPixels()):
+            self.ctx.strip.setPixelColor(i,Color(self.mode*255,0,0))
+        self.ctx.strip.show()
 
 class ExamplePowerup(Behaviour):
     index = 0
@@ -81,13 +82,13 @@ class ExamplePowerup(Behaviour):
     def onExit(self):
         getLogger().getChild(LOG_TAG).debug("Exit %s" % (type(self).__name__))
 
-    def onDraw(self,strip):
-        for i in range(strip.numPixels()):
+    def onDraw(self):
+        for i in range(self.ctx.strip.numPixels()):
             c = 0
             if i == self.index:
                 c = self.color
-            strip.setPixelColor(i,c)
-        strip.show()
+            self.ctx.strip.setPixelColor(i,c)
+        self.ctx.strip.show()
 
     async def update(self):
         while True:
@@ -107,13 +108,13 @@ class OtherExamplePowerup(Behaviour):
     def onExit(self):
         getLogger().getChild(LOG_TAG).debug("Exit %s" % (type(self).__name__))
 
-    def onDraw(self,strip):
-        for i in range(strip.numPixels()):
+    def onDraw(self):
+        for i in range(self.ctx.strip.numPixels()):
             c = 0
             if i == self.index:
                 c = self.color
-            strip.setPixelColor(i,c)
-        strip.show()
+            self.ctx.strip.setPixelColor(i,c)
+        self.ctx.strip.show()
 
     async def update(self):
         while True:

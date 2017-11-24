@@ -7,7 +7,7 @@ class TagType(Enum):
 
 
 TagTypeMap_Admin = {
-    "AFF345D3": TagType.ADMIN1
+    "AFF345D3": lambda rootCtrl,ctx: ctx.throttleCtrl.configureBaseThrottle(0.02)
 }
 
 TagTypeMap_Powerup = {
