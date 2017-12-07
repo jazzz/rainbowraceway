@@ -3,9 +3,12 @@ import janus
 import serial
 import serial.aio
 
-from rainbowraceway import AdminController,RfidReader,TrikeCtx,TagStream, async_cancel
+from rainbowraceway import AdminController,TagStream, async_cancel
 from utils import CancelToken
 from rfid_reader import MockTagReader
+
+from rfid_reader import MockTagReader
+from trike_ctx import TrikeCtx
 
 
 async def enqueueTags(src,q):
