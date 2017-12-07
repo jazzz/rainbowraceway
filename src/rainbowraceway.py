@@ -6,16 +6,11 @@ import platform
 import serial
 import serial.aio
 
-if platform.system() != "Windows":
-    import spidev
-else:
-    print("SPIDEV not imported")
-
 from behaviours import *
 from rfid_reader import TagStream,RfidReader
 from tags import *
 from utils import async_cancel, CancelToken
-from utils import create_and_init_neopixels
+from utils import create_and_init_neopixels, create_SpiDev
 from utils import setup_logging, logging, getLogger
 from utils import closeTo
 
@@ -48,7 +43,7 @@ class ThrottleCtrl:
 
 
     def init_spi(self):
-        self.spi = spidev.SpiDev()
+        self.spi = create_SpiDev()
         self.spi.open(0, 0)
         self.spi.max_speed_hz = 10000
 
