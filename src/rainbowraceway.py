@@ -6,18 +6,22 @@ import platform
 import serial
 import serial.aio
 
-from behaviours import *
+import admin_behaviours
+import dynamic_types
+from introspect import getAssociatedObjects,verifyObjAssociationSanity
+import race_behaviours
 from rfid_reader import TagStream,RfidReader
-from tags import *
+from tags import admin_tags, race_tags
 from utils import async_cancel, CancelToken
 from utils import create_and_init_neopixels, create_SpiDev
 from utils import setup_logging, logging, getLogger
 from utils import closeTo
 
-
 setup_logging(logging.DEBUG)
 LOG_TAG = "core"
 
+verifyObjAssociationSanity(admin_behaviours)
+verifyObjAssociationSanity(race_behaviours)
 
 class TrikeCtx:
     def __init__(self,throttle,light):
@@ -99,16 +103,19 @@ class RaceController:
         self.loop = loop
         self.trikeCtx = trikeCtx
 
+        self.createActionMap()
+
         self.subTask = loop.create_future()
         self.subTask.cancel()
 
-        self.defaultTask = DefaultBehaviour()
+        self.defaultTask = race_behaviours.DefaultBehaviour()
         self.launchDefaultTask()
 
-        self.tagTaskMap = {
-            TagType.POWERUP1: ExamplePowerup,
-            TagType.POWERUP2: OtherExamplePowerup,
-        }
+    def createActionMap(self):
+        self.actionMap = {}
+
+        for associationObj in getAssociatedObjects(race_behaviours):
+            self.actionMap[dynamic_types.typeFromString(associationObj.association)] = associationObj.obj
 
     def launchDefaultTask(self):
         self.defaultTask.launch(self.loop, self.trikeCtx)
@@ -123,20 +130,18 @@ class RaceController:
             getLogger().getChild(LOG_TAG).info("TagOcclusion: Tag detected, but current Behaviour not finished")
             return
 
-        if tag not in TagTypeMap_Powerup:
+        if tag not in race_tags:
             getLogger().getChild(LOG_TAG).info("UnknownTag: New Tag detected, but Type is not Specified - Tag:%s"%(tag))
             return
 
-        tagType = TagTypeMap_Powerup[tag]
-
-        if tagType not in self.tagTaskMap:
-            getLogger().getChild(LOG_TAG).error("ProgramingError: No behaviour specified for '%s' in tagTypeMap" %(tagType))
+        actionType = race_tags[tag]
+        if actionType not in self.actionMap:
+            getLogger().getChild(LOG_TAG).error("ProgramingError: No behaviour specified for '%s' " %(actionType))
             return
 
         self.subTask = self.loop.create_task(
-            self.async_launchOneshotTask(self.tagTaskMap[tagType]())
+            self.async_launchOneshotTask(self.actionMap[actionType]())
         )
-
 
 class AdminController:
 
@@ -145,13 +150,19 @@ class AdminController:
         self.cancelToken = cancelToken
         self.trikeCtx = trikeCtx
         self.subController = None
+        self.createActionMap()
+
+    def createActionMap(self):
+        self.actionMap = {}
+        for associationObj in getAssociatedObjects(admin_behaviours):
+            self.actionMap[dynamic_types.typeFromString(associationObj.association)] = associationObj.obj
 
     def onStartup(self):
         self.subController = RaceController(self.loop, self.trikeCtx, self.cancelToken)
 
     def onTag(self,tag):
         getLogger().getChild(LOG_TAG).info("AdminTag RECV - Tag:%s" % (tag))
-        TagTypeMap_Admin[tag](self,self.trikeCtx)
+        self.actionMap[admin_tags[tag]](self,self.trikeCtx)
 
     def createTask(self, loop, tagSource):
         self.onStartup()
@@ -159,18 +170,19 @@ class AdminController:
 
     async def async_tagProcessor(self, tagGenerator):
         async for tag in tagGenerator:
-            if tag in TagTypeMap_Admin:
+            if tag in admin_tags:
                 self.onTag(tag)
             else:
                 self.subController.onTag(tag)
 
 
 if __name__ == "__main__":
+
     trikeCtx = TrikeCtx.createProductionCtx()
     loop = asyncio.get_event_loop()
     cancelToken = CancelToken(loop)
 
-    queue = janus.Queue(loop=loop);
+    queue = janus.Queue(loop=loop)
     taskController = AdminController(loop, cancelToken, trikeCtx)
     tagStream = TagStream(queue.async_q)
     tasks = []
