@@ -8,13 +8,14 @@ from collections import deque
 
 import yr903Pkt
 
+import tags
 import random
 class MockTagReader:
 
     def __init__(self, cancelToken, delay):
         self.cancelToken = cancelToken
         self.delay = delay
-        self.tagList = ["AFF345D3", "54D31AF2","84D31AF3","FFFFFFFF"]
+        self.tagList = self.scrapeTags()
 
     def __aiter__(self):
         return self
@@ -25,6 +26,8 @@ class MockTagReader:
         await asyncio.sleep(self.delay)
         return random.choice(self.tagList)
 
+    def scrapeTags(self):
+        return [ x for x in tags.admin_tags.keys()] + [x for x in tags.race_tags.keys()]
 
 
 class RfidReader(asyncio.Protocol):
@@ -79,7 +82,7 @@ class RfidReader(asyncio.Protocol):
         return buf[pktHeaderLen+pktLen:]
 
     def pktHandler(self,pkt):
-        epc = pkt[8:-2]
+        epc = pkt[10:-2]
         self.queue.put(epc.hex())
 
 

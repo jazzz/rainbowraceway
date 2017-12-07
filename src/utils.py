@@ -118,6 +118,23 @@ def create_and_init_neopixels(LED_COUNT=16, LED_PIN=18, LED_FREQ_HZ=800000, LED_
 
 
 #################################
+## SPI Utils
+#################################
+
+if platform.system() != "Windows":
+    from spidev import SpiDev
+else:
+    logging.getLogger('root').warning("Windows OS: Detected. Using Stub SpiDev Library --Throttle will not work")
+
+    class SpiDev():
+        max_speed_hz = 0
+        def open(self,a,b):
+            pass
+
+def create_SpiDev():
+    return SpiDev()
+
+#################################
 ## ThrottleControl
 #################################
 
