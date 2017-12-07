@@ -79,7 +79,7 @@ class RfidReader(asyncio.Protocol):
         return buf[pktHeaderLen+pktLen:]
 
     def pktHandler(self,pkt):
-        epc = pkt[8:-2]
+        epc = pkt[10:-2]
         self.queue.put(epc.hex())
 
 
