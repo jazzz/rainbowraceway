@@ -17,7 +17,7 @@ class ThrottleCtrl:
         self.__baseThrottle = 0.5 # range (0,1] this establishes the normal (non-powerup) reference point
         self.__deltaT = 0.1
 
-        self.currentPowerRatio = 1.0    # nominal range(0,2). expresses current power as a ratio of the
+        self.__currentPowerRatio = 1.0    # nominal range(0,2). expresses current power as a ratio of the
                                         # refrence point.
 
     def init_spi(self):
@@ -41,8 +41,11 @@ class ThrottleCtrl:
         self.__setThrottle(throttle)
 
     def setPowerRatio(self,powerRatio):
-        self.currentPowerRatio = powerRatio
+        self.__currentPowerRatio = powerRatio
         self.__setThrottle(self.__baseThrottle*powerRatio)
+
+    def currentPowerRatio(self):
+        return self.__currentPowerRatio
 
     def resetThrottle(self):
         self.__setThrottle(self.__baseThrottle)
@@ -51,13 +54,13 @@ class ThrottleCtrl:
     ## Helper Coroutines
     #######################
 
-    async def lerpThrottleTo(self,dstPowerRatio,totalDuration):
-        distance = dstPowerRatio - self.currentPowerRatio
+    async def lerpThrottle(self,dstPowerRatio,totalDuration):
+        distance = dstPowerRatio - self.currentPowerRatio()
         stepSize = distance / ((float(totalDuration) / self.__deltaT))
         asyncio.sleep(0)
-        while not closeToWithin(self.currentPowerRatio, dstPowerRatio,stepSize):
+        while not closeToWithin(self.currentPowerRatio(), dstPowerRatio,stepSize):
             await asyncio.sleep(self.__deltaT)
-            self.setPowerRatio(self.currentPowerRatio + stepSize)
+            self.setPowerRatio(self.currentPowerRatio() + stepSize)
         self.setPowerRatio(dstPowerRatio)   #clamp rounding errors from euler steps
 
 class MockThrottleCtrl(ThrottleCtrl):
