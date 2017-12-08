@@ -3,6 +3,6 @@ from dynamic_types import *
 admin_tags = dict()
 race_tags = dict()
 
+admin_tags['988318022124501a7e']=color_change
 
-race_tags['988318022124501a7e']=green_shell
 race_tags['80000c007717605f2f']=banana

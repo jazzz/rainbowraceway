@@ -131,6 +131,9 @@ else:
         def open(self,a,b):
             pass
 
+        def xfer(self,a):
+            pass
+
 def create_SpiDev():
     return SpiDev()
 
@@ -139,6 +142,9 @@ def create_SpiDev():
 #################################
 
 def closeTo(a,b):
-    return abs(a-b) < sys.float_info.epsilon
+    closeToWithin(sys.float_info.epsilon)
+
+def closeToWithin(a,b,v):
+    return abs(a-b) < abs(v)
 
 

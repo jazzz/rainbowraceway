@@ -14,6 +14,9 @@ class Behaviour:
     def onExit(self):
         pass
 
+    async def onPreExit(self):
+        await asyncio.sleep(0)
+
     def onDraw(self):
         pass
 
@@ -28,6 +31,7 @@ class Behaviour:
         except asyncio.CancelledError:
             pass
 
+        await self.onPreExit()
         self.cancelTasks()
         self.onExit()
 
@@ -65,22 +69,31 @@ class DefaultBehaviour(Behaviour):
         getLogger().getChild(LOG_TAG).debug("Exit %s" % (type(self).__name__))
 
     def onDraw(self):
-        self.mode = 1-self.mode
         for i in range(self.ctx.strip.numPixels()):
-            self.ctx.strip.setPixelColor(i,Color(self.mode*255,0,0))
+            self.ctx.strip.setPixelColor(i,Color(*self.ctx.baseColor))
         self.ctx.strip.show()
 
 @Associate("banana")
-class ExamplePowerup(Behaviour):
+class BananaPowerup(Behaviour):
     index = 0
+    power_ratio = 0.5
     def onEnter(self):
         getLogger().getChild(LOG_TAG).debug("Enter %s" % (type(self).__name__))
-        self.color = Color(0,255,255)
+        self.color = Color(255,255,0)
         self.launchSubtask(callLater(self.cancel,5))
         self.launchSubtask(self.update())
 
+        #TODO Lifetime issue here as this task could outlive the parent. Add Awaitable subtasks?
+        self.loop.create_task(self.ctx.throttle_ctrl.lerpThrottle(self.power_ratio, 1))
+
     def onExit(self):
         getLogger().getChild(LOG_TAG).debug("Exit %s" % (type(self).__name__))
+
+    async def onPreExit(self):
+        getLogger().getChild(LOG_TAG).debug("ExitLERP %s" % (type(self).__name__))
+        await self.loop.create_task(
+            self.ctx.throttle_ctrl.lerpThrottle(self.ctx.throttle_ctrl.BASE_RATIO, 0.5)
+        )
 
     def onDraw(self):
         for i in range(self.ctx.strip.numPixels()):
@@ -96,8 +109,8 @@ class ExamplePowerup(Behaviour):
             self.index +=1
             self.index %= 4
 
-@Associate("Green Shell")
-class OtherExamplePowerup(Behaviour):
+@Associate("boostpad")
+class GoFast(Behaviour):
     index = 0
     def onEnter(self):
         getLogger().getChild(LOG_TAG).debug("Enter %s" % (type(self).__name__))

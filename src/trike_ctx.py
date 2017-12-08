@@ -3,9 +3,10 @@ from utils import create_and_init_neopixels, create_SpiDev
 
 class TrikeCtx:
     def __init__(self,throttle,light):
-        self.throttleCtrl =  throttle
+        self.throttle_ctrl =  throttle
         self.strip = light
 
+        self.baseColor = [255,0,0]
 
     @staticmethod
     def createProductionCtx():
@@ -14,4 +15,3 @@ class TrikeCtx:
     @staticmethod
     def createMockCtx():
         return TrikeCtx(MockThrottleCtrl(), create_and_init_neopixels())
-    

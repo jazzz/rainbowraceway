@@ -12,10 +12,12 @@ class ThrottleCtrl:
     You may ask for 200% power but the motor might not be able to
     provide that, but it will try its best.
     """
+    BASE_RATIO = 1.0
+
     def __init__(self):
         self.init_spi()
-        self.__baseThrottle = 0.5 # range (0,1] this establishes the normal (non-powerup) reference point
-        self.__deltaT = 0.1
+        self.__baseThrottle = 0.5   # range (0,1] this establishes the normal (non-powerup) reference point
+        self.__deltaT = 0.03        # Euler step resolution in seconds
 
         self.__currentPowerRatio = 1.0    # nominal range(0,2). expresses current power as a ratio of the
                                         # refrence point.
