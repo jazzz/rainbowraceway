@@ -27,12 +27,13 @@ if [ "clean" = "$cmd" ]; then
 fi
 
 
+apt-get update
 #################################
 ## Install Packages
 #################################
 
-$INSTALL_PKG virtualenv scons $PY_VERSION-dev swig git
-
+$INSTALL_PKG virtualenv scons $PY_VERSION-dev swig
+$INSTALL_PKG git
 #################################
 ## Create Virtual Env
 #################################
@@ -57,14 +58,16 @@ if [ ! -d "$LED_DIR" ]; then
 	pushd $LED_DIR/python
 	$PYTHON setup.py install
 	popd
-	echo ".... Finished"
+	echo ".... Success"
 fi
 
 #################################
 ## Install Python Modules
 #################################
-$PIP install janus 'pyserial==3.0' 
-
+$PIP install janus
+$PIP install logger
+$PIP install pyserial
+$PIP install spidev
 #################################
 ## Generate Run Script
 #################################
@@ -101,7 +104,8 @@ WantedBy=multi-user.target
 " > /etc/systemd/system/rainbowraceway.service
 
 systemctl daemon-reload
+systemctl enable  rainbowraceway.service
 systemctl restart rainbowraceway.service
-systemctl enable rainbowraceway.service
+
 
 echo "...Finished..."
