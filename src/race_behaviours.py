@@ -98,7 +98,7 @@ class BananaPowerup(Behaviour):
     def onDraw(self):
         for i in range(self.ctx.strip.numPixels()):
             c = 0
-            if i == self.index:
+            if (i%2 == self.index):
                 c = self.color
             self.ctx.strip.setPixelColor(i,c)
         self.ctx.strip.show()
@@ -107,7 +107,7 @@ class BananaPowerup(Behaviour):
         while True:
             await asyncio.sleep(0.1)
             self.index +=1
-            self.index %= 4
+            self.index %= 2
 
 @Associate("boostpad")
 class GoFast(Behaviour):
