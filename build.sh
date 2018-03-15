@@ -64,6 +64,7 @@ fi
 #################################
 ## Install Python Modules
 #################################
+$PIP install colorsys
 $PIP install janus
 $PIP install logger
 $PIP install pyserial

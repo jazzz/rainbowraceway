@@ -148,3 +148,19 @@ def closeToWithin(a,b,v):
     return abs(a-b) < abs(v)
 
 
+#################################
+## Color Utils
+#################################
+import colorsys
+def color2Hsv(color):
+    w = (color & 0xFF000000)
+    r = (color & 0x00FF0000)
+    g = (color & 0x0000FF00)
+    b = (color & 0x000000FF)
+
+    if w:
+        logging.getLogger(__name__).warning("W component conversion not implemented")
+    return colorsys.rgb_to_hsv(r,g,b)
+
+def hsv2Color(h,s,v):
+    return Color(*map(lambda x: int(x*255),colorsys.hsv_to_rgb(h,s,v)))
