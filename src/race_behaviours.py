@@ -73,6 +73,47 @@ class DefaultBehaviour(Behaviour):
             self.ctx.strip.setPixelColor(i,Color(*self.ctx.baseColor))
         self.ctx.strip.show()
 
+@Associate("fullstop")
+class StopItNow(Behaviour):
+    index = 0
+    goingUp = 1
+    power_ratio = 0
+    def onEnter(self):
+        getLogger().getChild(LOG_TAG).debug("Enter %s" % (type(self).__name__))
+        self.color = Color(0,0,0)
+        self.launchSubtask(self.update())
+
+        #TODO Lifetime issue here as this task could outlive the parent. Add Awaitable subtasks?
+        self.loop.create_task(self.ctx.throttle_ctrl.lerpThrottle(self.power_ratio, 1))
+
+    def onExit(self):
+        getLogger().getChild(LOG_TAG).debug("Exit %s" % (type(self).__name__))
+
+    async def onPreExit(self):
+        getLogger().getChild(LOG_TAG).debug("ExitLERP %s" % (type(self).__name__))
+        await self.loop.create_task(
+            self.ctx.throttle_ctrl.lerpThrottle(self.ctx.throttle_ctrl.BASE_RATIO, 0.5)
+        )
+
+    def onDraw(self):
+        for i in range(self.ctx.strip.numPixels()):
+            c = self.color
+            self.ctx.strip.setPixelColor(i,c)
+        self.ctx.strip.show()
+
+    async def update(self):
+        while True:
+            await asyncio.sleep(0.1)
+            if (self.goingUp==1):
+                self.index +=1
+                if (self.index==255):
+                    self.goingUp = 0
+            if (self.goingUp==0):
+                self.index -=1
+                if (self.index==0):
+                    self.goingUp = 1
+            self.color = Color(self.index,0,0)
+        
 @Associate("banana")
 class BananaPowerup(Behaviour):
     index = 0
